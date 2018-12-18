@@ -3,17 +3,42 @@
 #include <stdio.h>
 #include "debug.h"
 
+int reverse_endianess(int value, int size){
+  int resultat = 0;
+  char *source, *destination;
 
-Elf32Custom_Ehdr readElfFileHeader(FILE* fichier){
-  Elf32Custom_Ehdr h;
+  source = (char *) &value;
+  destination = ((char *) &resultat) + size;
+  for (int i = 0; i < size; i++){
+        *(--destination) = *(source++);
+  }
+    return resultat;
+}
+
+Elf32_Ehdr readElfFileHeader(FILE* fichier){
+  Elf32_Ehdr h;
   fread(&h,1,sizeof(h),fichier);
+  h.e_type = reverse_endianess(h.e_type,sizeof(h.e_type));
+  h.e_machine = reverse_endianess(h.e_machine,sizeof(h.e_machine));
+  h.e_version = reverse_endianess(h.e_version,sizeof(h.e_version));
+  h.e_entry = reverse_endianess(h.e_entry,sizeof(h.e_entry));
+  h.e_phoff = reverse_endianess(h.e_phoff,sizeof(h.e_phoff));
+  h.e_shoff = reverse_endianess(h.e_shoff,sizeof(h.e_shoff));
+  h.e_flags = reverse_endianess(h.e_flags,sizeof(h.e_flags));
+  h.e_ehsize = reverse_endianess(h.e_ehsize,sizeof(h.e_ehsize));
+  h.e_phentsize = reverse_endianess(h.e_phentsize,sizeof(h.e_phentsize));
+  h.e_phnum = reverse_endianess(h.e_phnum,sizeof(h.e_phnum));
+  h.e_shentsize = reverse_endianess(h.e_shentsize,sizeof(h.e_shentsize));
+  h.e_shnum = reverse_endianess(h.e_shnum,sizeof(h.e_shnum));
+  h.e_shstrndx = reverse_endianess(h.e_shstrndx,sizeof(h.e_shstrndx));
+
   return h;
 }
 
 void displayElfFileHeader(char* fichierElf){
   FILE* fichier = fopen(fichierElf, "r");
   if (fichier != NULL){
-    Elf32Custom_Ehdr header;
+    Elf32_Ehdr header;
     header = readElfFileHeader(fichier);
     printf("En-tête ELF:\n");
 
@@ -30,7 +55,7 @@ void displayElfFileHeader(char* fichierElf){
     //_________________________________________
     //CLASSE
     //_________________________________________
-    printf("Classe:   ELF64\n");
+    printf("Classe:   ELF32\n");
 
     //_________________________________________
     //DONNEES
@@ -47,6 +72,8 @@ void displayElfFileHeader(char* fichierElf){
       case 1:
       printf("Version:  %d(Current)\n",header.e_version);break;
     }
+    printf("Version:  %d\n",header.e_version);
+
 
     //_________________________________________
     //OS/ABI
@@ -100,8 +127,8 @@ void displayElfFileHeader(char* fichierElf){
 
     printf("Version:  0x%d\n",header.e_version);
     printf("Entry:  0x%x\n",header.e_entry);
-    printf("Début des en-têtes de programme:  %ld(octets dans le fichier)\n",header.e_phoff);
-    printf("Début des en-têtes de section:    %ld(octets dans le fichier)\n",header.e_shoff);
+    printf("Début des en-têtes de programme:  %d(octets dans le fichier)\n",header.e_phoff);
+    printf("Début des en-têtes de section:    %d(octets dans le fichier)\n",header.e_shoff);
     printf("Fanions:  0x%x\n",header.e_flags);
     printf("Taille de cet en-tête:  %d(bytes)\n",header.e_ehsize);
     printf("Taille de l'en-tête du programme::  %d(bytes)\n",header.e_phentsize);
