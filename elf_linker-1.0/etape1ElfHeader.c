@@ -2,10 +2,13 @@
 #include "elfCustom.h"
 #include <stdio.h>
 #include "debug.h"
+#include "util.c"
 
 int reverse_endianess(int value, int size){
   int resultat = 0;
   char *source, *destination;
+
+
 
   source = (char *) &value;
   destination = ((char *) &resultat) + size;
@@ -15,23 +18,27 @@ int reverse_endianess(int value, int size){
     return resultat;
 }
 
+//Passage de little en big endian
+
 Elf32_Ehdr readElfFileHeader(FILE* fichier){
   Elf32_Ehdr h;
   fread(&h,1,sizeof(h),fichier);
-  h.e_type = reverse_endianess(h.e_type,sizeof(h.e_type));
-  h.e_machine = reverse_endianess(h.e_machine,sizeof(h.e_machine));
-  h.e_version = reverse_endianess(h.e_version,sizeof(h.e_version));
-  h.e_entry = reverse_endianess(h.e_entry,sizeof(h.e_entry));
-  h.e_phoff = reverse_endianess(h.e_phoff,sizeof(h.e_phoff));
-  h.e_shoff = reverse_endianess(h.e_shoff,sizeof(h.e_shoff));
-  h.e_flags = reverse_endianess(h.e_flags,sizeof(h.e_flags));
-  h.e_ehsize = reverse_endianess(h.e_ehsize,sizeof(h.e_ehsize));
-  h.e_phentsize = reverse_endianess(h.e_phentsize,sizeof(h.e_phentsize));
-  h.e_phnum = reverse_endianess(h.e_phnum,sizeof(h.e_phnum));
-  h.e_shentsize = reverse_endianess(h.e_shentsize,sizeof(h.e_shentsize));
-  h.e_shnum = reverse_endianess(h.e_shnum,sizeof(h.e_shnum));
-  h.e_shstrndx = reverse_endianess(h.e_shstrndx,sizeof(h.e_shstrndx));
-
+  if (!is_big_endian())
+  {
+    h.e_type = reverse_endianess(h.e_type,sizeof(h.e_type));
+    h.e_machine = reverse_endianess(h.e_machine,sizeof(h.e_machine));
+    h.e_version = reverse_endianess(h.e_version,sizeof(h.e_version));
+    h.e_entry = reverse_endianess(h.e_entry,sizeof(h.e_entry));
+    h.e_phoff = reverse_endianess(h.e_phoff,sizeof(h.e_phoff));
+    h.e_shoff = reverse_endianess(h.e_shoff,sizeof(h.e_shoff));
+    h.e_flags = reverse_endianess(h.e_flags,sizeof(h.e_flags));
+    h.e_ehsize = reverse_endianess(h.e_ehsize,sizeof(h.e_ehsize));
+    h.e_phentsize = reverse_endianess(h.e_phentsize,sizeof(h.e_phentsize));
+    h.e_phnum = reverse_endianess(h.e_phnum,sizeof(h.e_phnum));
+    h.e_shentsize = reverse_endianess(h.e_shentsize,sizeof(h.e_shentsize));
+    h.e_shnum = reverse_endianess(h.e_shnum,sizeof(h.e_shnum));
+    h.e_shstrndx = reverse_endianess(h.e_shstrndx,sizeof(h.e_shstrndx));
+  }
   return h;
 }
 
