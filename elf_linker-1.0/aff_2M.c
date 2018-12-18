@@ -38,7 +38,8 @@ int main(int argc, char const *argv[]) {
             posPremierElem = sectionHeader.s_offset;
         }
 
-        fseek(monFichier,sizeof(headerElf)+tailleProHeader,SEEK_SET);
+
+        fseek(monFichier,posPremierElem,SEEK_SET);
         while(monOffset<);
 
     }
