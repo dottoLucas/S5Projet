@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]) {
         unsigned int maPos = posPremierElem;
         fseek(monFichier,maPos,SEEK_SET);
         while(feof(monFichier)!=1/*&&(if(sectionHeader.sh_offset!=0){sh_offset>maPos}else{1})*/){
-
+          Elf32_Shdr =
         }
 
     }
