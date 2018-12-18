@@ -24,19 +24,22 @@ int main(int argc, char const *argv[]) {
         }else if (data->e_ident[EI_DATA]==ELFDATA2MSB){
             printf("little endian\n");
         }
-        int tailleProHeader = 0;
+        int posPremierElem = 0;
         if(headerElf.e_phoff!=0){
             Elf32_Phdr programHeader;
             fseek(monFichier,headerElf.e_phoff,SEEK_SET);
             fread(&programHeader, sizeof(programHeader), monFichier);
-            tailleProHeader = sizeof(programHeader);
+            posPremierElem = programHeader.p_offset;
         }
         if (headerElf.e_shoff!=0) {
             Elf32_Shdr sectionHeader;
             fseek(monFichier,headerElf.e_shoff,SEEK_SET);
             fread(&sectionHeader, sizeof(sectionHeader), monFichier);
+            posPremierElem = sectionHeader.s_offset;
         }
+
         fseek(monFichier,sizeof(headerElf)+tailleProHeader,SEEK_SET);
+        while(monOffset<);
 
     }
     fclose(monFichier);
