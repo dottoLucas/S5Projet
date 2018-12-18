@@ -8,8 +8,6 @@ int reverse_endianess(int value, int size){
   int resultat = 0;
   char *source, *destination;
 
-
-
   source = (char *) &value;
   destination = ((char *) &resultat) + size;
   for (int i = 0; i < size; i++){
@@ -75,23 +73,20 @@ void displayElfFileHeader(char* fichierElf){
     //_________________________________________
     switch (header.e_version) {
       case 0:
-      printf("Version:  %d(Invalid)\n",header.e_version);break;
+      printf("Version:   %d(Invalid)\n",header.e_version);break;
       case 1:
-      printf("Version:  %d(Current)\n",header.e_version);break;
+      printf("Version:   %d(Current)\n",header.e_version);break;
     }
-    printf("Version:  %d\n",header.e_version);
-
 
     //_________________________________________
     //OS/ABI
     //_________________________________________
     printf("OS/ABI:    UNIX - System V\n");
 
-
     //_________________________________________
     //TYPE
     //_________________________________________
-    printf("Type:   ");
+    printf("Type:     ");
     switch (header.e_type) {
       case 0:
       printf("Pas de type");break;
@@ -109,7 +104,7 @@ void displayElfFileHeader(char* fichierElf){
     //_________________________________________
     //MACHINE
     //_________________________________________
-    printf("Machine:  ");
+    printf("Machine:    ");
     switch (header.e_machine) {
       case 0:
       printf("Pas d'architecture");break;
@@ -132,17 +127,18 @@ void displayElfFileHeader(char* fichierElf){
     }
     printf("\n");
 
-    printf("Version:  0x%d\n",header.e_version);
-    printf("Entry:  0x%x\n",header.e_entry);
-    printf("Début des en-têtes de programme:  %d(octets dans le fichier)\n",header.e_phoff);
+
+    printf("Version:   0x%d\n",header.e_version);
+    printf("Entry:   0x%x\n",header.e_entry);
+    printf("Début des en-têtes de programme:    %d(octets dans le fichier)\n",header.e_phoff);
     printf("Début des en-têtes de section:    %d(octets dans le fichier)\n",header.e_shoff);
-    printf("Fanions:  0x%x\n",header.e_flags);
+    printf("Fanions:   0x%x\n",header.e_flags);
     printf("Taille de cet en-tête:  %d(bytes)\n",header.e_ehsize);
-    printf("Taille de l'en-tête du programme::  %d(bytes)\n",header.e_phentsize);
-    printf("Nombre d'en-tête du programme:  %d\n",header.e_phnum);
-    printf("Taille des en-têtes de section:  %d(bytes)\n",header.e_shentsize);
-    printf("Nombre d'en-têtes de section:  %d\n",header.e_shnum);
-    printf("Table d'indexes des chaînes d'en-tête de section:  %d\n",header.e_shstrndx);
+    printf("Taille de l'en-tête du programme::    %d(bytes)\n",header.e_phentsize);
+    printf("Nombre d'en-tête du programme:   %d\n",header.e_phnum);
+    printf("Taille des en-têtes de section:    %d(bytes)\n",header.e_shentsize);
+    printf("Nombre d'en-têtes de section:   %d\n",header.e_shnum);
+    printf("Table d'indexes des chaînes d'en-tête de section:   %d\n",header.e_shstrndx);
 
 
 
