@@ -9,6 +9,7 @@ void displayElfFileSymTab(char* nomfichier){
     //partie2 récupérer toutes les sections avec type=SYMTAB
     //partie3 récupérer pour chacune les informations contenue
       //partie4 pour chaque sections on traduit les informations
+      
   }else{
     printf("Erreur: ouverture fichier\n");
   }

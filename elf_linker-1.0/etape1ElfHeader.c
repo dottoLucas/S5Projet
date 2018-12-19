@@ -124,6 +124,8 @@ void displayElfFileHeader(char* fichierElf){
       printf("MIPS RS3000");break;
       case 62:
       printf("AMD x86-64 architecture");break;
+      case 40:
+      printf("ARM");break;
     }
     printf("\n");
 
