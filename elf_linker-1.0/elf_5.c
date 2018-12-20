@@ -2,7 +2,11 @@
 #include "util.c"
 #include "elfCustom.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+
+#define SectionNameLength 20
 
 int reverse_endianess(int value, int size){
   int resultat = 0;
@@ -16,16 +20,12 @@ int reverse_endianess(int value, int size){
     return resultat;
 }
 
-Elf32_Sym reverseAllEndianness(Elf32_Sym symStruct){
+Elf32_Rel reverseAllEndianness(Elf32_Rel relStruct){
   if (!is_big_endian()){
-    symStruct.st_name = reverse_endianess(symStruct.st_name,sizeof(symStruct.st_name));
-    symStruct.st_value = reverse_endianess(symStruct.st_value,sizeof(symStruct.st_value));
-    symStruct.st_size = reverse_endianess(symStruct.st_size,sizeof(symStruct.st_size));
-    symStruct.st_info = reverse_endianess(symStruct.st_info,sizeof(symStruct.st_info));
-    symStruct.st_other = reverse_endianess(symStruct.st_other,sizeof(symStruct.st_other));
-    symStruct.st_shndx = reverse_endianess(symStruct.st_shndx,sizeof(symStruct.st_shndx));
+    relStruct.r_offset = reverse_endianess(relStruct.r_offset,sizeof(relStruct.r_offset));
+    relStruct.r_info = reverse_endianess(relStruct.r_info,sizeof(relStruct.r_info));
   }
-  return symStruct;
+  return relStruct;
 }
 
 Elf32_Ehdr readElfFileHeader(FILE* fichier){
@@ -97,7 +97,6 @@ char * get_rel_type(unsigned int type){
   switch (type){
     case R_386_NONE:	return "R_386_NONE";
     case R_386_32:	return "R_386_32";
-    case R_386_PC32:	return "R_386_PC32";
     case R_386_GOT32:	return "R_386_GOT32";
     case R_386_PLT32:	return "R_386_PLT32";
     case R_386_COPY:	return "R_386_COPY";
@@ -106,6 +105,7 @@ char * get_rel_type(unsigned int type){
     case R_386_RELATIVE:	return "R_386_RELATIVE";
     case R_386_GOTOFF:	return "R_386_GOTOFF";
     case R_386_GOTPC:	return "R_386_GOTPC";
+    case R_ARM_ABS32: return "R_ARM_ABS32";
   }
   return "Error";
 }
@@ -137,22 +137,28 @@ void displayElfFileRelTab(char* nomfichier){
       //on récupère le nombre d'entrées'
       int nbEntry = reverse_endianess(sectionTabRel[j].sh_size,sizeof(sectionTabRel[j].sh_size))/sizeof(Elf32_Rel);
       Elf32_Rel relTab[nbEntry];
-      printf("Section de relocalisation ' %s ' à l'adresse de décalage %d contient %d entrées\n", get_section_name(reverse_endianess(sectionTabRel[j].sh_type,sizeof(sectionTabRel[j].sh_type))),sectionTabRel[j].sh_offset, nbEntry);
+
+      char* str = malloc(SectionNameLength*sizeof(char));
+      fseek(fichier,tabHeadSection[header.e_shstrndx].sh_offset+tabHeadSection[j].sh_name,SEEK_SET);
+      fgets(str,SectionNameLength,fichier);
+
+      printf("Section de relocalisation ' %s ' à l'adresse de décalage 0x%x contient %d entrées\n", str,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)), nbEntry);
       //on récupère le contenu des sections
       fseek(fichier,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)),SEEK_SET);
       fread(&relTab,1,sizeof(relTab),fichier);
-      printf("%-10s%-10s%-10s%-10s%-10s\n", "Décalage","Info","Type","Val.-sym","Noms-symboles");
+      printf("%-15s%-15s%-10s%-10s%-10s\n", "Décalage","Info","Type","Val.-sym","Noms-symboles");
       for (int i = 0; i < nbEntry; i++) {
         relTab[i] = reverseAllEndianness(relTab[i]);
         fseek(fichier,sectionTabRel[j].sh_offset+relTab[i].r_offset,SEEK_SET);
         fread(&(relTab[i]),1,sizeof(Elf32_Rel),fichier);
-        printf("%-10x    ",relTab[i].r_offset);
-        printf("%-10d", relTab[i].r_info);
-        printf("%-10s", get_rel_type(ELF32_R_TYPE(relTab[i].r_info)));
-        printf("%-10d", (ELF32_R_SYM(relTab[i].r_info)));
+        printf("%-10.8x    ",relTab[i].r_offset);
+        printf("%-10.8x", relTab[i].r_info);
+        printf("%-10s\t", get_rel_type(ELF32_R_TYPE(relTab[i].r_info)));
+        printf("%-10.8x", (ELF32_R_SYM(relTab[i].r_info)));
         //printf("%-10s", get_rel_symName(relTab[i].r_info));
         printf("\n");
       }
+      printf("\n\n");
     }
     fclose(fichier);
   }else{
