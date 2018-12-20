@@ -106,9 +106,20 @@ char * get_rel_type(unsigned int type){
     case R_386_GOTOFF:	return "R_386_GOTOFF";
     case R_386_GOTPC:	return "R_386_GOTPC";
     case R_ARM_ABS32: return "R_ARM_ABS32";
+    case R_ARM_CALL: return "R_ARM_CALL";
+    case R_ARM_JUMP24: return "R_ARM_JUMP24";
   }
-  return "Error";
+  return "Type inconnu";
 }
+
+char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym){
+	char* str = malloc(SectionNameLength*sizeof(char));
+	fseek(fichier,SymTab.sh_offset+Sym.st_name,SEEK_SET);
+ 	fgets(str,SectionNameLength,fichier);
+  free(str);
+  return str;
+}
+
 
 
 void displayElfFileRelTab(char* nomfichier){
@@ -123,15 +134,24 @@ void displayElfFileRelTab(char* nomfichier){
     //on récupère les en-têtes
     fread(&tabHeadSection,1,header.e_shnum*header.e_shentsize,fichier);
     // ATTENTION il faut peut etre reverse_endianess ici ATTENTION
+    Elf32_Shdr sectionTabSym[header.e_shnum];
     Elf32_Shdr sectionTabRel[header.e_shnum];
     int nbSectionRel = 0;
+    int nbSectionSym = 0;
+
     for (int i = 0; i < header.e_shnum; i++) {
       //on ne rérécupère que les sections qui sont des tables de symboles
+      if (reverse_endianess(tabHeadSection[i].sh_type,sizeof(tabHeadSection[i].sh_type)) == SHT_SYMTAB) {
+        sectionTabSym[nbSectionSym] = tabHeadSection[i];
+        nbSectionSym++;
+      }
       if(reverse_endianess(tabHeadSection[i].sh_type,sizeof(tabHeadSection[i].sh_type)) == SHT_REL){
         sectionTabRel[nbSectionRel] = tabHeadSection[i];
         nbSectionRel++;
       }
     }
+
+
     //on parcours nos sections de type SHT_REL
     for (int j = 0; j < nbSectionRel; j++) {
       //on récupère le nombre d'entrées'
@@ -144,7 +164,11 @@ void displayElfFileRelTab(char* nomfichier){
       str=fgets(str,SectionNameLength,fichier);
 
       printf("Section de relocalisation ' %s ' à l'adresse de décalage 0x%x contient %d entrées\n", str,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)), nbEntry);
-      //on récupère le contenu des sections
+
+      fseek(fichier,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)),SEEK_SET);
+      fread(&relTab,1,sizeof(relTab),fichier);
+
+      //on récupère le contenu des sections Rel
       fseek(fichier,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)),SEEK_SET);
       fread(&relTab,1,sizeof(relTab),fichier);
       printf("%-15s%-15s%-10s%-10s%-10s\n", "Décalage","Info","Type","Val.-sym","Noms-symboles");
@@ -155,11 +179,47 @@ void displayElfFileRelTab(char* nomfichier){
         printf("%-10.8x    ",relTab[i].r_offset);
         printf("%-10.8x", relTab[i].r_info);
         printf("%-10s\t", get_rel_type(ELF32_R_TYPE(relTab[i].r_info)));
-        printf("%-10.8x", (ELF32_R_SYM(relTab[i].r_info)));
-        //printf("%-10s", get_rel_symName(relTab[i].r_info));
+
+        //recuperation du nom de la section pour ce reloc
+        int indexName = ELF32_R_SYM(relTab[i].r_info);
+        char* strRel = malloc(SectionNameLength*sizeof(char));
+        fseek(fichier,reverse_endianess(tabHeadSection[header.e_shstrndx].sh_offset,sizeof(tabHeadSection[header.e_shstrndx].sh_offset))+reverse_endianess(tabHeadSection[indexName].sh_name,sizeof(tabHeadSection[indexName].sh_name)),SEEK_SET);
+        fgets(strRel,SectionNameLength,fichier);
+
+        int symValue = 0;
+
+        //GET SYM VALUE
+        //on récupère le contenu des tables de symboles
+        for (int k = 0; k < nbSectionSym; k++) {
+          //on récupère le nombre de symbole
+          int nbSymbole = reverse_endianess(sectionTabSym[k].sh_size,sizeof(sectionTabSym[k].sh_size))/sizeof(Elf32_Sym);
+          Elf32_Sym symTab[nbSymbole];
+          fseek(fichier,reverse_endianess(sectionTabSym[k].sh_offset,sizeof(sectionTabSym[k].sh_offset)),SEEK_SET);
+          fread(&symTab,1,sizeof(symTab),fichier);
+
+          for (int h = 0; h < nbSymbole; h++) {
+            char* strRelCpy = malloc(SectionNameLength*sizeof(char));
+            strncpy(strRelCpy,strRel,strlen(strRel));
+            //si le nom est un nom de symbole
+            if (strRelCpy[0]!='.') {
+              char* name = getNomSym(fichier,header,sectionTabSym[indexName],symTab[h]);
+              strRelCpy = name;
+              strRel = name;
+            }
+            if (getNomSym(fichier,header,sectionTabSym[k],symTab[h])==strRelCpy) {
+              symValue = symTab[h].st_value;
+            }
+
+          }
+        }
+
+        printf("%-10.8d", symValue);//A COMPLETER sym value
+        printf("%-10s", strRel);
+        //printf("%-10d", indexName);
         printf("\n");
+        //free(strRel);
+
       }
-      free(str);
       printf("\n\n");
     }
     fclose(fichier);
