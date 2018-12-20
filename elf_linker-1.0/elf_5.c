@@ -202,14 +202,13 @@ void displayElfFileRelTab(char* nomfichier){
             strncpy(strRelCpy,strRel,strlen(strRel));
             //si le nom est un nom de symbole
             if (strRelCpy[0]!='.') {
-              char* name = getNomSym(fichier,header,sectionTabSym[indexName],symTab[h]);
-              strRelCpy = name;
-              strRel = name;
+              char* name = getNomSym(fichier,header,sectionTabSym[k],symTab[indexName]);
+              strncpy(strRelCpy,name,strlen(name));
+              strncpy(strRel,name,strlen(name));
+              if (getNomSym(fichier,header,sectionTabSym[k],symTab[h])==strRelCpy) {
+                symValue = symTab[h].st_value;
+              }
             }
-            if (getNomSym(fichier,header,sectionTabSym[k],symTab[h])==strRelCpy) {
-              symValue = symTab[h].st_value;
-            }
-
           }
         }
 
