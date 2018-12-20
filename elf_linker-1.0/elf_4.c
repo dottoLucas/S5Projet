@@ -93,6 +93,27 @@ char* get_section_name(unsigned int type){
   return "Error";
 }
 
+/*char* getName(int index,Elf32_Shdr stringTable, FILE* fichier){
+  if (index != 0) {
+    char** names;
+    fseek(fichier,reverse_endianess(stringTable.sh_offset,sizeof(stringTable.sh_offset)),SEEK_SET);
+    int nbOctetGet = 0;
+    int nbOctetInSection = reverse_endianess(stringTable.sh_size,sizeof(stringTable.sh_size));
+    while (nbOctetGet < nbOctetInSection) {
+      char c = fgetc(fichier);
+      nbOctetGet++;
+      int j = 0;
+      while (c != '\0') {
+        names[nbOctetGet-1][j] = c;
+        c = fgetc(fichier);
+        nbOctetGet++;
+      }
+    }
+    return names[index-1];
+  }
+  return " ";
+}*/
+
 
 void displayElfFileSymTab(char* nomfichier){
   FILE* fichier = fopen(nomfichier, "r");
@@ -103,16 +124,19 @@ void displayElfFileSymTab(char* nomfichier){
     fseek(fichier,header.e_shoff,SEEK_SET);
     //on initialise le tableau d'en-têtes de section
     Elf32_Shdr tabHeadSection[header.e_shnum];
-    //on récupère les en-têtes
+    //on récupère les everse_endianess(stringTable.shn-têtes
     fread(&tabHeadSection,1,header.e_shnum*header.e_shentsize,fichier);
     // ATTENTION il faut peut etre reverse_endianess ici ATTENTION
     Elf32_Shdr sectionTabSym[header.e_shnum];
+    int numStringTable = -1;
     int nbSectionSymTab = 0;
     for (int i = 0; i < header.e_shnum; i++) {
       //on ne rérécupère que les sections qui sont des tables de symboles
       if(reverse_endianess(tabHeadSection[i].sh_type,sizeof(tabHeadSection[i].sh_type)) == SHT_SYMTAB){
         sectionTabSym[nbSectionSymTab] = tabHeadSection[i];
         nbSectionSymTab++;
+      }else if(reverse_endianess(tabHeadSection[i].sh_type,sizeof(tabHeadSection[i].sh_type)) == SHT_STRTAB && numStringTable ==-1){
+        numStringTable = i;
       }
     }
     //on parcours nos sections de type SHT_SYMTAB
@@ -130,16 +154,17 @@ void displayElfFileSymTab(char* nomfichier){
         printf("%-10d:  ",i);
         fseek(fichier,sectionTabSym[j].sh_offset+symTab[i].st_value,SEEK_SET);
         fread(&(symTab[i].st_value),1,sizeof(symTab[i].st_value),fichier);
-        printf("%-10x    ",symTab[i].st_value);
+        printf("%-10.8x    ",symTab[i].st_value);
         printf("%-10d    ",symTab[i].st_size);
         printf("%-10s", get_symbol_type(ELF32_ST_TYPE(symTab[i].st_info)));
         printf("%-10s", get_symbol_binding(ELF32_ST_BIND(symTab[i].st_info)));
-        printf("%-10s",get_symbol_visibility(symTab[i].st_info));
+        printf("%-10s",get_symbol_visibility(symTab[i].st_other));
         if (symTab[i].st_shndx == 0) {
           printf("%-10s","UND");
         }else{
           printf("%-10d",symTab[i].st_shndx);
         }
+        //printf("%-10s    ",getName(symTab[i].st_name, tabHeadSection[numStringTable],fichier));
         printf("%-10d    ",symTab[i].st_name);
         printf("\n");
       }
