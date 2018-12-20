@@ -377,12 +377,12 @@ void afficherSection(FILE *fichier, Elf32_Shdr Section_a_traitee ){
 //----------------------------Partie4-----------------------------
 //----------------------------------------------------------------
 
-int recurpererNumSec(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier){
+int recurpererNumSec(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier,char* param){
 	int i=0;
 	char* str = malloc(SectionNameLength*sizeof(char));
 	fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
 	fgets(str,SectionNameLength,fichier);
-	while(strcmp(str,".symtab") !=0 ){
+	while(strcmp(str,param) !=0 ){
 		i++;
 		fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
 		fgets(str,SectionNameLength,fichier);
@@ -467,20 +467,26 @@ char* findSymLink(Elf32_Sym Sym ){
 	return link;
 }
 
-void AfficherNom(FILE *fichier,Elf32_Ehdr *data,Elf32_Shdr *TableHs,Elf32_Sym *Sym){
+void AfficherNom(FILE *fichier,Elf32_Ehdr *data,Elf32_Shdr SmyTab,Elf32_Sym *Sym){
 	char* str = malloc(SectionNameLength*sizeof(char));	
-	fseek(fichier,TableHs[data->e_shstrndx].sh_offset+Sym->st_name,SEEK_SET);
+	fseek(fichier,SmyTab.sh_offset+Sym->st_name,SEEK_SET);
+  //printf("%s\n",TableHs[data->e_sh  dx].sh_size ) ;
+  //TableHs[data->e_shstrndx].sh_offset+Sym->st_name
+  //afficherSection(fichier,TableHs[data->e_shstrndx]);
  	fgets(str,SectionNameLength,fichier);
     printf("%-15s\t\t\n",str);
+    //printf("%s\n", TableHs[data->e_shstrndx]);
     free(str);
 }
 
 void affichageSymTab(char *fichierG,Elf32_Shdr SmyTab,Elf32_Ehdr *data,Elf32_Shdr *TableHs){
 	char *type;
 	char* link;
+ 
 	FILE* fichier = fopen(fichierG, "r");
 	FILE* fichierNom = fopen(fichierG, "r");
 	Elf32_Sym *Sym=malloc(sizeof(Elf32_Sym));
+  int indice=recurpererNumSec(TableHs,*data,fichier,".strtab");
 	fseek(fichier,SmyTab.sh_offset,SEEK_SET);
 	printf("%-15s\t%-15s\t%-15s\t%-15s\t%-15s\t%-15s\t%-15s\t%-15s\n","Num","value","Taille","Type","Lien","vis","Ndx","Nom");
 	for (int i = 0; i <=SmyTab.sh_info ; ++i)
@@ -501,7 +507,7 @@ void affichageSymTab(char *fichierG,Elf32_Shdr SmyTab,Elf32_Ehdr *data,Elf32_Shd
 			printf("%s\t\t","UND");
 		else
 			printf("%d\t\t",Sym->st_shndx);
-		AfficherNom(fichierNom,data,TableHs,Sym);
+		AfficherNom(fichierNom,data,TableHs[indice],Sym);
 	}
 }
 
@@ -523,7 +529,7 @@ int main(int argc, char *argv[]){
 
   		//Etape 4
   		int indiceSmyTab;
-		indiceSmyTab=recurpererNumSec(TableHs,data,fichier);
+		indiceSmyTab=recurpererNumSec(TableHs,data,fichier,".symtab");
 		affichageSymTab(argv[1],TableHs[indiceSmyTab],&data,TableHs);
 
 	//}else if(argc==3){
