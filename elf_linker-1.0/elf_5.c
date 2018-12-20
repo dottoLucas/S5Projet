@@ -138,9 +138,10 @@ void displayElfFileRelTab(char* nomfichier){
       int nbEntry = reverse_endianess(sectionTabRel[j].sh_size,sizeof(sectionTabRel[j].sh_size))/sizeof(Elf32_Rel);
       Elf32_Rel relTab[nbEntry];
 
+      //recuperation du nom de la section
       char* str = malloc(SectionNameLength*sizeof(char));
-      fseek(fichier,tabHeadSection[header.e_shstrndx].sh_offset+tabHeadSection[j].sh_name,SEEK_SET);
-      fgets(str,SectionNameLength,fichier);
+      fseek(fichier,reverse_endianess(tabHeadSection[header.e_shstrndx].sh_offset,sizeof(tabHeadSection[header.e_shstrndx].sh_offset))+reverse_endianess(sectionTabRel[j].sh_name,sizeof(sectionTabRel[j].sh_name)),SEEK_SET);
+      str=fgets(str,SectionNameLength,fichier);
 
       printf("Section de relocalisation ' %s ' à l'adresse de décalage 0x%x contient %d entrées\n", str,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)), nbEntry);
       //on récupère le contenu des sections
@@ -158,6 +159,7 @@ void displayElfFileRelTab(char* nomfichier){
         //printf("%-10s", get_rel_symName(relTab[i].r_info));
         printf("\n");
       }
+      free(str);
       printf("\n\n");
     }
     fclose(fichier);
