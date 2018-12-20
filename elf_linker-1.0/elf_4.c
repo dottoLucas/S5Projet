@@ -75,6 +75,7 @@ char * get_symbol_binding (unsigned int binding){
 }
 
 char * get_symbol_visibility (unsigned int visibility){
+
   switch (visibility){
     case STV_DEFAULT:	return "DEFAULT";
     case STV_INTERNAL:	return "INTERNAL";
@@ -121,21 +122,24 @@ void displayElfFileSymTab(char* nomfichier){
       Elf32_Sym symTab[nbSymbole];
       printf("Table de symboles de << %s >> contient %d entrées\n", get_section_name(reverse_endianess(sectionTabSym[j].sh_type,sizeof(sectionTabSym[j].sh_type))), nbSymbole);
       //on récupère le contenu des sections
-      fseek(fichier,sectionTabSym[j].sh_offset,SEEK_SET);
+      fseek(fichier,reverse_endianess(sectionTabSym[j].sh_offset,sizeof(sectionTabSym[j].sh_offset)),SEEK_SET);
       fread(&symTab,1,sizeof(symTab),fichier);
       printf("%-10s%-10s%-10s%-20s%-10s%-10s%-10s%-10s\n", "Num","Valeur","Tail","Type","Lien","Vis","Ndx","Nom");
       for (int i = 0; i < nbSymbole; i++) {
-        //symTab[i] = reverseAllEndianness(symTab[i]);
-        //printf("%d:   %d  %d  %d  %s  %s  %d  %d\n",i ,symTab[i].st_name,symTab[i].st_value,symTab[i].st_size,get_symbol_type(symTab[i].st_info), get_symbol_binding(symTab[i].st_info),symTab[i].st_other,symTab[i].st_shndx);
+        symTab[i] = reverseAllEndianness(symTab[i]);
         printf("%-10d:  ",i);
         fseek(fichier,sectionTabSym[j].sh_offset+symTab[i].st_value,SEEK_SET);
         fread(&(symTab[i].st_value),1,sizeof(symTab[i].st_value),fichier);
-        printf("%-10d    ",symTab[i].st_value);
+        printf("%-10x    ",symTab[i].st_value);
         printf("%-10d    ",symTab[i].st_size);
         printf("%-10s", get_symbol_type(ELF32_ST_TYPE(symTab[i].st_info)));
         printf("%-10s", get_symbol_binding(ELF32_ST_BIND(symTab[i].st_info)));
         printf("%-10s",get_symbol_visibility(symTab[i].st_info));
-        printf("%-10d",symTab[i].st_shndx);
+        if (symTab[i].st_shndx == 0) {
+          printf("%-10s","UND");
+        }else{
+          printf("%-10d",symTab[i].st_shndx);
+        }
         printf("%-10d    ",symTab[i].st_name);
         printf("\n");
       }
