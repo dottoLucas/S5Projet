@@ -28,3 +28,11 @@ Elf32_Sym reverseAllEndianness(Elf32_Sym symStruct){
   }
   return symStruct;
 }
+
+Elf32_Rel reverseAllEndianness(Elf32_Rel relStruct){
+  if (!is_big_endian()){
+    relStruct.r_offset = reverse_endianess(relStruct.r_offset,sizeof(relStruct.r_offset));
+    relStruct.r_info = reverse_endianess(relStruct.r_info,sizeof(relStruct.r_info));
+  }
+  return relStruct;
+}
