@@ -112,9 +112,22 @@ char * get_rel_type(unsigned int type){
   return "Type inconnu";
 }
 
+Elf32_Sym reverseAllEndiannessSym(Elf32_Sym symStruct){
+  if (!is_big_endian()){
+    symStruct.st_name = reverse_endianess(symStruct.st_name,sizeof(symStruct.st_name));
+    symStruct.st_value = reverse_endianess(symStruct.st_value,sizeof(symStruct.st_value));
+    symStruct.st_size = reverse_endianess(symStruct.st_size,sizeof(symStruct.st_size));
+    symStruct.st_info = reverse_endianess(symStruct.st_info,sizeof(symStruct.st_info));
+    symStruct.st_other = reverse_endianess(symStruct.st_other,sizeof(symStruct.st_other));
+    symStruct.st_shndx = reverse_endianess(symStruct.st_shndx,sizeof(symStruct.st_shndx));
+  }
+  return symStruct;
+}
+
 char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym){
-	char* str = malloc(SectionNameLength*sizeof(char));
-	fseek(fichier,SymTab.sh_offset+Sym.st_name,SEEK_SET);
+  reverseAllEndiannessSym(Sym);
+  char* str = malloc(SectionNameLength*sizeof(char));
+	fseek(fichier,reverse_endianess(SymTab.sh_offset,sizeof(SymTab.sh_offset))+Sym.st_name,SEEK_SET);
  	fgets(str,SectionNameLength,fichier);
   free(str);
   return str;
@@ -124,6 +137,7 @@ char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym)
 
 void displayElfFileRelTab(char* nomfichier){
   FILE* fichier = fopen(nomfichier, "r");
+
   if (fichier != NULL){
     //getHeader
     Elf32_Ehdr header = readElfFileHeader(fichier);
@@ -133,11 +147,13 @@ void displayElfFileRelTab(char* nomfichier){
     Elf32_Shdr tabHeadSection[header.e_shnum];
     //on récupère les en-têtes
     fread(&tabHeadSection,1,header.e_shnum*header.e_shentsize,fichier);
-    // ATTENTION il faut peut etre reverse_endianess ici ATTENTION
+
     Elf32_Shdr sectionTabSym[header.e_shnum];
     Elf32_Shdr sectionTabRel[header.e_shnum];
+
     int nbSectionRel = 0;
     int nbSectionSym = 0;
+
 
     for (int i = 0; i < header.e_shnum; i++) {
       //on ne rérécupère que les sections qui sont des tables de symboles
@@ -187,25 +203,41 @@ void displayElfFileRelTab(char* nomfichier){
 
         //on récupère le contenu des tables de symboles
         for (int k = 0; k < nbSectionSym; k++) {
+          //printf("test\n" );
+
           //on récupère le nombre de symbole
           int nbSymbole = reverse_endianess(sectionTabSym[k].sh_size,sizeof(sectionTabSym[k].sh_size))/sizeof(Elf32_Sym);
           Elf32_Sym symTab[nbSymbole];
           fseek(fichier,reverse_endianess(sectionTabSym[k].sh_offset,sizeof(sectionTabSym[k].sh_offset)),SEEK_SET);
           fread(&symTab,1,sizeof(symTab),fichier);
+          symValue = reverse_endianess(symTab[indexName].st_value,sizeof(symTab[indexName].st_value));
+          printf("%-10.8x", symValue);
 
-          for (int h = 0; h < nbSymbole; h++) {
-            if (h == indexName) {
-              strRel  = getNomSym(fichier,header,sectionTabSym[k],symTab[indexName]);
-              symValue = symTab[h].st_value;
-              if (strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[h].st_info)), "SECTION")) {
-                fseek(fichier,reverse_endianess(tabHeadSection[header.e_shstrndx].sh_offset,sizeof(tabHeadSection[header.e_shstrndx].sh_offset))+reverse_endianess(tabHeadSection[indexName].sh_name,sizeof(tabHeadSection[indexName].sh_name)),SEEK_SET);
-                fgets(strRel,SectionNameLength,fichier);
-              }
-            }
+          if (strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[indexName].st_info)), "NOTYPE") == 0){
+
+            //on récupère le nom dans la table de symbole
+            //strRel  = getNomSym(fichier,header,sectionTabSym[k],symTab[indexName]);
+            fseek(fichier,tabHeadSection[header.e_shstrndx].sh_offset + reverse_endianess(symTab[indexName].st_name,sizeof(symTab[indexName].st_name)),SEEK_SET);
+     		    fgets(strRel,SectionNameLength,fichier);
+            /*fseek(fichier,reverse_endianess(sectionTabStringTab[0].sh_offset,sizeof(sectionTabStringTab[0].sh_offset))+reverse_endianess(symTab[indexName].st_name,sizeof(symTab[indexName].st_name)),SEEK_SET);
+            fgets(strRel,SectionNameLength,fichier);*/
+            printf("%d-Symbole \t\t", indexName);
+
+
+          }else if(strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[indexName].st_info)), "SECTION") == 0){
+
+            //on récupère le nom dans la table de section
+            int indexSection = reverse_endianess(symTab[indexName].st_shndx,sizeof(symTab[indexName].st_shndx));
+            //strRel  = getNomSym(fichier,header,tabHeadSection[indexSection],symTab[indexName]);
+
+            fseek(fichier,tabHeadSection[header.e_shstrndx].sh_offset + reverse_endianess(tabHeadSection[indexSection].sh_name,sizeof(tabHeadSection[indexSection].sh_name)),SEEK_SET);
+     		    fgets(strRel,SectionNameLength,fichier);
+            printf("%d-Section \t\t", indexSection);
+
           }
+
         }
-            printf("%-10.8d", symValue);//A COMPLETER sym value
-            printf("%-10s", strRel);
+        //printf("%-10s", strRel);
 
         //printf("%-10d", indexName);
         printf("\n");
