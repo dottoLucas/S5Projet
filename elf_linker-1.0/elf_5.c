@@ -180,15 +180,11 @@ void displayElfFileRelTab(char* nomfichier){
         printf("%-10.8x", relTab[i].r_info);
         printf("%-10s\t", get_rel_type(ELF32_R_TYPE(relTab[i].r_info)));
 
-        //recuperation du nom de la section pour ce reloc
+        //recuperation du nom pour ce reloc
         int indexName = ELF32_R_SYM(relTab[i].r_info);
-        char* strRel = malloc(SectionNameLength*sizeof(char));
-        fseek(fichier,reverse_endianess(tabHeadSection[header.e_shstrndx].sh_offset,sizeof(tabHeadSection[header.e_shstrndx].sh_offset))+reverse_endianess(tabHeadSection[indexName].sh_name,sizeof(tabHeadSection[indexName].sh_name)),SEEK_SET);
-        fgets(strRel,SectionNameLength,fichier);
-
         int symValue = 0;
+        char* strRel = malloc(SectionNameLength*sizeof(char));
 
-        //GET SYM VALUE
         //on récupère le contenu des tables de symboles
         for (int k = 0; k < nbSectionSym; k++) {
           //on récupère le nombre de symbole
@@ -198,22 +194,19 @@ void displayElfFileRelTab(char* nomfichier){
           fread(&symTab,1,sizeof(symTab),fichier);
 
           for (int h = 0; h < nbSymbole; h++) {
-            char* strRelCpy = malloc(SectionNameLength*sizeof(char));
-            strncpy(strRelCpy,strRel,strlen(strRel));
-            //si le nom est un nom de symbole
-            if (strRelCpy[0]!='.') {
-              char* name = getNomSym(fichier,header,sectionTabSym[k],symTab[indexName]);
-              strncpy(strRelCpy,name,strlen(name));
-              strncpy(strRel,name,strlen(name));
-              if (getNomSym(fichier,header,sectionTabSym[k],symTab[h])==strRelCpy) {
-                symValue = symTab[h].st_value;
+            if (h == indexName) {
+              strRel  = getNomSym(fichier,header,sectionTabSym[k],symTab[indexName]);
+              symValue = symTab[h].st_value;
+              if (strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[h].st_info)), "SECTION")) {
+                fseek(fichier,reverse_endianess(tabHeadSection[header.e_shstrndx].sh_offset,sizeof(tabHeadSection[header.e_shstrndx].sh_offset))+reverse_endianess(tabHeadSection[indexName].sh_name,sizeof(tabHeadSection[indexName].sh_name)),SEEK_SET);
+                fgets(strRel,SectionNameLength,fichier);
               }
             }
           }
         }
+            printf("%-10.8d", symValue);//A COMPLETER sym value
+            printf("%-10s", strRel);
 
-        printf("%-10.8d", symValue);//A COMPLETER sym value
-        printf("%-10s", strRel);
         //printf("%-10d", indexName);
         printf("\n");
         //free(strRel);
