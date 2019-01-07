@@ -132,39 +132,38 @@ char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym)
   return str;
 }
 
-void reverseAllEndiannessSectionHeader(Elf32_Shdr headSection){
+Elf32_Shdr reverseAllEndiannessSectionHeader(Elf32_Shdr headSection){
+    Elf32_Shdr headsec;
     if (!is_big_endian()) {
-      headSection->sh_name = reverse_endianess(headSection->sh_name,sizeof(headSection->sh_name));
-      headSection->sh_type = reverse_endianess(headSection->sh_type,sizeof(headSection->sh_type));
-      headSection->sh_flags = reverse_endianess(headSection->sh_flags,sizeof(headSection->sh_flags));
-      headSection->sh_addr = reverse_endianess(headSection->sh_addr,sizeof(headSection->sh_addr));
-      headSection->sh_offset = reverse_endianess(headSection->sh_offset,sizeof(headSection->sh_offset));
-      headSection->sh_size = reverse_endianess(headSection->sh_size,sizeof(headSection->sh_size));
-      headSection->sh_link = reverse_endianess(headSection->sh_link,sizeof(headSection->sh_link));
-      headSection->sh_info = reverse_endianess(headSection->sh_info,sizeof(headSection->sh_info));
-      headSection->sh_addralign = reverse_endianess(headSection->sh_addralign,sizeof(headSection->sh_addralign));
-      headSection->sh_entsize = reverse_endianess(headSection->sh_entsize,sizeof(headSection->sh_entsize));
+      headsec.sh_name = reverse_endianess(headSection.sh_name,sizeof(headSection.sh_name));
+      headsec.sh_type = reverse_endianess(headSection.sh_type,sizeof(headSection.sh_type));
+      headsec.sh_flags = reverse_endianess(headSection.sh_flags,sizeof(headSection.sh_flags));
+      headsec.sh_addr = reverse_endianess(headSection.sh_addr,sizeof(headSection.sh_addr));
+      headsec.sh_offset = reverse_endianess(headSection.sh_offset,sizeof(headSection.sh_offset));
+      headsec.sh_size = reverse_endianess(headSection.sh_size,sizeof(headSection.sh_size));
+      headsec.sh_link = reverse_endianess(headSection.sh_link,sizeof(headSection.sh_link));
+      headsec.sh_info = reverse_endianess(headSection.sh_info,sizeof(headSection.sh_info));
+      headsec.sh_addralign = reverse_endianess(headSection.sh_addralign,sizeof(headSection.sh_addralign));
+      headsec.sh_entsize = reverse_endianess(headSection.sh_entsize,sizeof(headSection.sh_entsize));
     }
-    return headSection;
+    return headsec;
 }
 
-Elf32_Shdr* readElfFileHeaderSection(FILE* fichier, int nbSection, int tailleEnTeteSection){
-  Elf32_Shdr tabHS[nbSection];
+void readElfFileHeaderSection(FILE* fichier, Elf32_Shdr tabHeadSection[],Elf32_Ehdr header, int nbSection, int tailleEnTeteSection){
   //décallage pour aller aux en-têtes de section
   fseek(fichier,header.e_shoff,SEEK_SET);
   //on récupère les en-têtes
-  fread(&tabHeadSection,1,nbSection*tailleEnTeteSection,fichier);
+  fread(tabHeadSection,1,nbSection*tailleEnTeteSection,fichier);
   if (!is_big_endian())
   {
     for (int i = 0; i < nbSection; i++) {
-      tabHS[i] = reverseAllEndiannessSectionHeader(tabHS[i]);
+      tabHeadSection[i] = reverseAllEndiannessSectionHeader(tabHeadSection[i]);
     }
   }
-  return tabHS;
 }
 
 
-Elf32_Shdr* readElfFileTabSymSectionHeader(Elf32_Shdr tabHS[],int nbSection, FILE* fichier, int* nbSectionSym){
+Elf32_Shdr readElfFileTabSymSectionHeader(Elf32_Shdr tabHeadSection[],int nbSection, FILE* fichier){
   Elf32_Shdr sectionSym;
   for (int i = 0; i < nbSection; i++) {
     //on ne rérécupère que les sections qui sont des tables de symboles
@@ -173,22 +172,19 @@ Elf32_Shdr* readElfFileTabSymSectionHeader(Elf32_Shdr tabHS[],int nbSection, FIL
       i = nbSection;
     }
   }
-  *nbSectionSym = nbSecSym;
   return sectionSym;
 }
 
-Elf32_Shdr* readElfFileTabRelSectionHeader(Elf32_Shdr tabHS[],int nbSection, FILE* fichier, int* nbSectionRel){
-  Elf32_Shdr sectionTabRel[nbSection];
+void readElfFileTabRelSectionHeader(Elf32_Shdr sectionTabRel[], Elf32_Shdr tabHeadSection[],int nbSection, FILE* fichier, int* nbSectionRel){
   int nbSecRel = 0;
   for (int i = 0; i < nbSection; i++) {
     //on ne rérécupère que les sections qui sont des tables de symboles
     if (tabHeadSection[i].sh_type == SHT_REL) {
-      sectionSym[nbSectionSym] = tabHeadSection[i];
+      sectionTabRel[nbSecRel] = tabHeadSection[i];
       nbSecRel++;
     }
   }
   *nbSectionRel = nbSecRel;
-  return sectionTabRel;
 }
 
 
@@ -219,18 +215,16 @@ Elf32_Shdr* readElfFileTabRelSectionHeader(Elf32_Shdr tabHS[],int nbSection, FIL
     nbNoms++;
   }
 }*/
-int* getArrayOfRelEntryNumber(Elf32_Shdr sectionTabRel, int nbSectionRel){
-  int arrayRelEntryNumber[nbSectionRel];
+void getArrayOfRelEntryNumber(int* arrayRelEntryNumber, Elf32_Shdr sectionTabRel[], int nbSectionRel){
   //on parcours nos sections de relocalisation
   for (int i = 0; i < nbSectionRel; i++) {
     //on récupère le nombre d'entrées'
     int nbEntry = sectionTabRel[i].sh_size / sizeof(Elf32_Rel);
     arrayRelEntryNumber[i] = nbEntry;
   }
-  return arrayRelEntryNumber;
 }
 
-void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection, Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel, int nbSectionSym, int nbSectionRel, Elf32_Rel** relTabArray){
+void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], int nbSectionRel, Elf32_Rel** relTabArray){
 
   //on parcours nos sections de relocalisation
   for (int j = 0; j < nbSectionRel; j++) {
@@ -243,55 +237,50 @@ void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSec
     fread(&relTab,1,sizeof(relTab),fichier);
 
     for (int i = 0; i < nbEntry; i++) {
-      relTab[i] = reverseAllEndiannessRel(relTab[i]);
+      //relTab[i] = reverseAllEndiannessRel(relTab[i]);
       /*fseek(fichier,sectionTabRel[j].sh_offset+relTab[i].r_offset,SEEK_SET);
       fread(&(relTab[i]),1,sizeof(Elf32_Rel),fichier);*/
     }
-
-
-    *(relTabArray[j]) = &relTab;
+    relTabArray[j] = relTab;
   }
 }
-void readElfFileSymTable(Elf32_Sym symTab[],int nbSymbole){
-    Elf32_Sym symT[nbSymbole];
 
+void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab, int nbSymbole, int tailleSymTab){
     //on récupère le contenu de la table de symboles
-    fseek(fichier, (sectionSym.sh_offset ,SEEK_SET);
-    fread(&symT,1,sizeof(symTab),fichier);
+    fseek(fichier, sectionSym.sh_offset, SEEK_SET);
+    fread(symTab, 1, tailleSymTab, fichier);
 
     for (int i = 0; i < nbSymbole; i++) {
-      symT[i] = reverseAllEndiannessSym(symT[i]);
+      symTab[i] = reverseAllEndiannessSym(symTab[i]);
     }
-
-    return symT;
 }
 
 
-void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection, Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel, Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[]){
+void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[]){
 
   for (int i = 0; i < nbSectionRel; i++) {
-    nbEntry = arrayRelEntryNumber[i];
+    int nbEntry = arrayRelEntryNumber[i];
 
     //recuperation du nom de la section
     char* str = malloc(SectionNameLength*sizeof(char));
-    fseek(fichier,tabHeadSection[header.e_shstrndx].sh_offset + sectionTabRel[j].sh_name, SEEK_SET);
+    fseek(fichier,tabHeadSection[header.e_shstrndx].sh_offset + sectionTabRel[i].sh_name, SEEK_SET);
     str=fgets(str, SectionNameLength, fichier);
 
-    printf("Section de relocalisation ' %s ' à l'adresse de décalage 0x%x contient %d entrées\n", str, sectionTabRel[j].sh_offset, nbEntry);
+    printf("Section de relocalisation ' %s ' à l'adresse de décalage 0x%x contient %d entrées\n", str, sectionTabRel[i].sh_offset, nbEntry);
 
     printf("%-15s%-15s%-10s%-10s%-10s\n", "Décalage","Info","Type","Val.-sym","Noms-symboles");
 
-    for (int j = 0; j < nbEntry; j++) {
-      relTab = *(relTabArray[j]);
+    Elf32_Rel* relTab = relTabArray[i];
 
-      printf("%-10.8x    ",relTab[i].r_offset);
-      printf("%-10.8x", relTab[i].r_info);
-      printf("%-10s\t", get_rel_type(ELF32_R_TYPE(relTab[i].r_info)));
+    for (int j = 0; j < nbEntry; j++) {
+
+      printf("%-10.8x    ",relTab[j].r_offset);
+      printf("%-10.8x", relTab[j].r_info);
+      printf("%-10s\t", get_rel_type(ELF32_R_TYPE(relTab[j].r_info)));
 
       //recuperation du nom pour ce reloc
-      int indexName = ELF32_R_SYM(relTab[i].r_info);
+      int indexName = ELF32_R_SYM(relTab[j].r_info);
       int symValue = 0;
-      char* strRel = malloc(SectionNameLength*sizeof(char));
 
       symValue = symTab[indexName].st_value;
       printf("%-10.8x", symValue);
@@ -300,8 +289,10 @@ void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSe
         printf("%d-Symbole \t\t", indexName);
 
       }else if(strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[indexName].st_info)), "SECTION") == 0){
+        int indexSection = symTab[indexName].st_shndx;
         printf("%d-Section \t\t", indexSection);
       }
+
       printf("\n");
     }
     printf("\n\n");
@@ -317,36 +308,40 @@ int main(int argc, char *argv[]){
       Elf32_Ehdr header = readElfFileHeader(fichier);
 
       //on initialise le tableau d'en-têtes de section
-      Elf32_Shdr tabHeadSection[header.e_shnum] = readElfFileHeaderSection(fichier, header.e_shnum, header.e_shentsize);
+      Elf32_Shdr tabHeadSection[header.e_shnum] ;
+      readElfFileHeaderSection(fichier, tabHeadSection, header, header.e_shnum, header.e_shentsize);
 
       //on initialise l'en-têtes de la section de symboles
       Elf32_Shdr sectionSym = readElfFileTabSymSectionHeader(tabHeadSection,header.e_shnum, fichier);
 
       //on initialise le tableau d'en-têtes de relocalisation
       int nbSectionRel = 0;
-      Elf32_Shdr sectionTabRel[header.e_shnum]  = readElfFileTabRelSectionHeader(tabHeadSection,header.e_shnum, fichier, &nbSectionRel);
+      Elf32_Shdr sectionTabRel[header.e_shnum]  ;
+      readElfFileTabRelSectionHeader(sectionTabRel, tabHeadSection,header.e_shnum, fichier, &nbSectionRel);
 
       //on récupère le nombre de symbole
       int nbSymbole = sectionSym.sh_size/sizeof(Elf32_Sym);
+
       //on déclare notre tableau de symbole
-      Elf32_Sym symTab[nbSymbole] = readElfFileSymTable(sectionSym, symTab, nbSymbole);
+      Elf32_Sym symTab[nbSymbole] ;
+      int tailleSymTab = sizeof(symTab);
+      readElfFileSymTable(fichier, sectionSym, symTab, nbSymbole, tailleSymTab);
 
       Elf32_Rel* relTabArray[nbSectionRel];
       //on récupère le nombre d'entrées par table de relocalisation
-      int tabRelEntryNumber[nbSectionRel] = getArrayOfRelEntryNumber(sectionTabRel, nbSectionRel);
+      int tabRelEntryNumber[nbSectionRel] ;
+      getArrayOfRelEntryNumber(tabRelEntryNumber, sectionTabRel, nbSectionRel);
+
       for (int i = 0; i < nbSectionRel; i++) {
         relTabArray[i] = malloc(sizeof(tabRelEntryNumber[i] * sizeof(Elf32_Rel)));
       }
 
-      readElfFileRelTable(fichier, header, tabHeadSection, sectionSym, sectionTabRel, nbSectionSym, nbSectionRel, &relTabArray);
+      readElfFileRelTable(fichier, header, tabHeadSection, sectionSym, sectionTabRel, nbSectionRel, relTabArray);
 
+      displayElfFileRelTab(fichier, header, tabHeadSection, sectionSym, sectionTabRel, relTabArray, symTab, nbSectionRel, tabRelEntryNumber);
 
-      displayElfFileRelTab(fichier, header, tabHeadSection, sectionSym, sectionTabRel, &relTabArray, symTab, nbSectionRel, tabRelEntryNumber);
       fclose(fichier);
 
-      for (int i = 0; i < nbSectionRel; i++) {
-        free(relTabArray[i]);
-      }
     }else{
       printf("Erreur: ouverture fichier\n");
     }
