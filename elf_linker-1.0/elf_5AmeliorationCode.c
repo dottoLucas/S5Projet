@@ -225,24 +225,40 @@ void getArrayOfRelEntryNumber(int* arrayRelEntryNumber, Elf32_Shdr sectionTabRel
 }
 
 void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], int nbSectionRel, Elf32_Rel** relTabArray){
+  printf("__________________\n");
 
   //on parcours nos sections de relocalisation
   for (int j = 0; j < nbSectionRel; j++) {
     //on récupère le nombre d'entrées'
     int nbEntry = sectionTabRel[j].sh_size / sizeof(Elf32_Rel);
-    Elf32_Rel relTab[nbEntry];
 
     //on récupère le contenu des sections Rel
     fseek(fichier, sectionTabRel[j].sh_offset,SEEK_SET);
-    fread(&relTab,1,sizeof(relTab),fichier);
+    fread(relTabArray[j],1,sizeof(Elf32_Rel)*nbEntry,fichier);
 
     for (int i = 0; i < nbEntry; i++) {
-      //relTab[i] = reverseAllEndiannessRel(relTab[i]);
-      /*fseek(fichier,sectionTabRel[j].sh_offset+relTab[i].r_offset,SEEK_SET);
-      fread(&(relTab[i]),1,sizeof(Elf32_Rel),fichier);*/
+      relTabArray[j][i] = reverseAllEndiannessRel(relTabArray[j][i]);
+      if (j==0) {
+        printf("%-10.8x    ",relTabArray[j][i].r_offset);
+        printf("%-10.8x", relTabArray[j][i].r_info);
+        printf("%-10s\n", get_rel_type(ELF32_R_TYPE(relTabArray[j][i].r_info)));
+      }
     }
-    relTabArray[j] = relTab;
   }
+  printf("\n");
+  for (int h = 0; h < nbSectionRel; h++) {
+    int nbEntry = sectionTabRel[h].sh_size / sizeof(Elf32_Rel);
+    for (int k = 0; k < nbEntry; k++) {
+      if (h==0) {
+        printf("%-10.8x    ",relTabArray[h][k].r_offset);
+        printf("%-10.8x", relTabArray[h][k].r_info);
+        printf("%-10s\n", get_rel_type(ELF32_R_TYPE(relTabArray[h][k].r_info)));
+      }
+    }
+  }
+  printf("\n");
+  printf("__________________\n");
+
 }
 
 void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab, int nbSymbole, int tailleSymTab){
@@ -338,9 +354,14 @@ int main(int argc, char *argv[]){
 
       readElfFileRelTable(fichier, header, tabHeadSection, sectionSym, sectionTabRel, nbSectionRel, relTabArray);
 
+
       displayElfFileRelTab(fichier, header, tabHeadSection, sectionSym, sectionTabRel, relTabArray, symTab, nbSectionRel, tabRelEntryNumber);
 
       fclose(fichier);
+
+      for (int i = 0; i < nbSectionRel; i++) {
+        free(relTabArray[i]);
+      }
 
     }else{
       printf("Erreur: ouverture fichier\n");
