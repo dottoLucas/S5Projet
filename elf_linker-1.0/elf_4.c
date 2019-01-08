@@ -117,6 +117,8 @@ char* get_section_name(unsigned int type){
 
 void displayElfFileSymTab(char* nomfichier){
   FILE* fichier = fopen(nomfichier, "r");
+
+
   if (fichier != NULL){
     //getHeader
     Elf32_Ehdr header = readElfFileHeader(fichier);

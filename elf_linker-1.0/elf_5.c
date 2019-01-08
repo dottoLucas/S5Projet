@@ -1,4 +1,4 @@
-#include <elf.h>
+q#include <elf.h>
 #include "util.c"
 #include "elfCustom.h"
 #include <stdio.h>
@@ -133,7 +133,44 @@ char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym)
   return str;
 }
 
+void readSectionHeaders(Elf32_Shdr *tabHeaderSection, Elf32_Ehdr headerFile, FILE* fichier){
 
+  //décallage pour aller aux en-têtes de section
+  fseek(fichier,headerFile.e_shoff,SEEK_SET);
+
+  //on récupère les en-têtes
+  fread(&tabHeaderSection,1,headerFile.e_shnum*headerFile.e_shentsize,fichier);
+
+}
+
+char* getNomSection(Elf32_Shdr tabHeaderSection[], Elf32_Shdr sectionTabRel[], Elf32_Ehdr header, int index, FILE* fichier){
+  //recuperation du nom de la section
+  char str[SectionNameLength*sizeof(char)];
+  fseek(fichier,tabHeaderSection[header.e_shstrndx].sh_offset + sectionTabRel[index].sh_name,SEEK_SET);
+  str=fgets(str,SectionNameLength,fichier);
+  return str;
+}
+
+void reverseAllEndiannessSectionHeader(Elf32_Shdr *headSection){
+    if (!is_big_endian()) {
+      headSection->sh_name = reverse_endianess(headSection->sh_name,sizeof(headSection->sh_name));
+      headSection->sh_type = reverse_endianess(headSection->sh_type,sizeof(headSection->sh_type));
+      headSection->sh_flags = reverse_endianess(headSection->sh_flags,sizeof(headSection->sh_flags));
+      headSection->sh_addr = reverse_endianess(headSection->sh_addr,sizeof(headSection->sh_addr));
+      headSection->sh_offset = reverse_endianess(headSection->sh_offset,sizeof(headSection->sh_offset));
+      headSection->sh_size = reverse_endianess(headSection->sh_size,sizeof(headSection->sh_size));
+      headSection->sh_link = reverse_endianess(headSection->sh_link,sizeof(headSection->sh_link));
+      headSection->sh_info = reverse_endianess(headSection->sh_info,sizeof(headSection->sh_info));
+      headSection->sh_addralign = reverse_endianess(headSection->sh_addralign,sizeof(headSection->sh_addralign));
+      headSection->sh_entsize = reverse_endianess(headSection->sh_entsize,sizeof(headSection->sh_entsize));
+    }
+}
+
+void reverseAllEndiannessSectionHeaderTab(Elf32_Shdr *tabHeadSection, int nbSection){
+  for (int i = 0; i < nbSection; i++) {
+    reverseAllEndiannessSectionHeader(&tabHeadSection[i]);
+  }
+}
 
 void displayElfFileRelTab(char* nomfichier){
   FILE* fichier = fopen(nomfichier, "r");
@@ -141,12 +178,11 @@ void displayElfFileRelTab(char* nomfichier){
   if (fichier != NULL){
     //getHeader
     Elf32_Ehdr header = readElfFileHeader(fichier);
-    //décallage pour aller aux en-têtes de section
-    fseek(fichier,header.e_shoff,SEEK_SET);
+
     //on initialise le tableau d'en-têtes de section
     Elf32_Shdr tabHeadSection[header.e_shnum];
-    //on récupère les en-têtes
-    fread(&tabHeadSection,1,header.e_shnum*header.e_shentsize,fichier);
+    readSectionHeaders(tabHeadSection, header,fichier);
+    reverseAllEndiannessSectionHeaderTab[tabHeadSection,header.e_shnum];
 
     Elf32_Shdr sectionTabSym[header.e_shnum];
     Elf32_Shdr sectionTabRel[header.e_shnum];
@@ -167,6 +203,10 @@ void displayElfFileRelTab(char* nomfichier){
       }
     }
 
+    reverseAllEndiannessSectionHeaderTab(&tabHeadSection);
+    reverseAllEndiannessSectionHeaderTab(&sectionTabSym);
+    reverseAllEndiannessSectionHeaderTab(&sectionTabRel);
+
 
     //on parcours nos sections de type SHT_REL
     for (int j = 0; j < nbSectionRel; j++) {
@@ -175,9 +215,8 @@ void displayElfFileRelTab(char* nomfichier){
       Elf32_Rel relTab[nbEntry];
 
       //recuperation du nom de la section
-      char* str = malloc(SectionNameLength*sizeof(char));
-      fseek(fichier,reverse_endianess(tabHeadSection[header.e_shstrndx].sh_offset,sizeof(tabHeadSection[header.e_shstrndx].sh_offset))+reverse_endianess(sectionTabRel[j].sh_name,sizeof(sectionTabRel[j].sh_name)),SEEK_SET);
-      str=fgets(str,SectionNameLength,fichier);
+      char str[SectionNameLength*sizeof(char)];
+      str = getNomSection(tabHeaderSection, sectionTabRel, header, index, fichier);
 
       printf("Section de relocalisation ' %s ' à l'adresse de décalage 0x%x contient %d entrées\n", str,reverse_endianess(sectionTabRel[j].sh_offset,sizeof(sectionTabRel[j].sh_offset)), nbEntry);
 

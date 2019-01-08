@@ -1,5 +1,5 @@
 #include <elf.h>
-#include "util.c"
+#include "util.h"
 #include "elfCustom.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +30,7 @@ Elf32_Rel reverseAllEndiannessRel(Elf32_Rel relStruct){
 
 Elf32_Ehdr readElfFileHeader(FILE* fichier){
   Elf32_Ehdr h;
-  fread(&h,1,sizeof(h),fichier);
+  int unused __attribute__((unused))=fread(&h,1,sizeof(h),fichier);
   if (!is_big_endian())
   {
     h.e_type = reverse_endianess(h.e_type,sizeof(h.e_type));
@@ -127,7 +127,7 @@ Elf32_Sym reverseAllEndiannessSym(Elf32_Sym symStruct){
 char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym){
   char* str = malloc(SectionNameLength*sizeof(char));
 	fseek(fichier,SymTab.sh_offset+Sym.st_name,SEEK_SET);
- 	fgets(str,SectionNameLength,fichier);
+ 	void* unused __attribute__((unused))=fgets(str,SectionNameLength,fichier);
   free(str);
   return str;
 }
@@ -153,7 +153,7 @@ void readElfFileHeaderSection(FILE* fichier, Elf32_Shdr tabHeadSection[],Elf32_E
   //décallage pour aller aux en-têtes de section
   fseek(fichier,header.e_shoff,SEEK_SET);
   //on récupère les en-têtes
-  fread(tabHeadSection,1,nbSection*tailleEnTeteSection,fichier);
+  int unused __attribute__((unused))=fread(tabHeadSection,1,nbSection*tailleEnTeteSection,fichier);
   if (!is_big_endian())
   {
     for (int i = 0; i < nbSection; i++) {
@@ -224,47 +224,28 @@ void getArrayOfRelEntryNumber(int* arrayRelEntryNumber, Elf32_Shdr sectionTabRel
   }
 }
 
-void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], int nbSectionRel, Elf32_Rel** relTabArray){
-  printf("__________________\n");
+void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], int nbSectionRel, Elf32_Rel** relTabArray, int* tabRelEntryNumber){
 
   //on parcours nos sections de relocalisation
   for (int j = 0; j < nbSectionRel; j++) {
     //on récupère le nombre d'entrées'
-    int nbEntry = sectionTabRel[j].sh_size / sizeof(Elf32_Rel);
+    //int nbEntry = sectionTabRel[j].sh_size / sizeof(Elf32_Rel);
+    int nbEntry = tabRelEntryNumber[j];
 
     //on récupère le contenu des sections Rel
     fseek(fichier, sectionTabRel[j].sh_offset,SEEK_SET);
-    fread(relTabArray[j],1,sizeof(Elf32_Rel)*nbEntry,fichier);
+    int unused __attribute__((unused))=fread(relTabArray[j],1,sizeof(Elf32_Rel)*nbEntry,fichier);
 
     for (int i = 0; i < nbEntry; i++) {
       relTabArray[j][i] = reverseAllEndiannessRel(relTabArray[j][i]);
-      if (j==0) {
-        printf("%-10.8x    ",relTabArray[j][i].r_offset);
-        printf("%-10.8x", relTabArray[j][i].r_info);
-        printf("%-10s\n", get_rel_type(ELF32_R_TYPE(relTabArray[j][i].r_info)));
-      }
     }
   }
-  printf("\n");
-  for (int h = 0; h < nbSectionRel; h++) {
-    int nbEntry = sectionTabRel[h].sh_size / sizeof(Elf32_Rel);
-    for (int k = 0; k < nbEntry; k++) {
-      if (h==0) {
-        printf("%-10.8x    ",relTabArray[h][k].r_offset);
-        printf("%-10.8x", relTabArray[h][k].r_info);
-        printf("%-10s\n", get_rel_type(ELF32_R_TYPE(relTabArray[h][k].r_info)));
-      }
-    }
-  }
-  printf("\n");
-  printf("__________________\n");
-
 }
 
 void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab, int nbSymbole, int tailleSymTab){
     //on récupère le contenu de la table de symboles
     fseek(fichier, sectionSym.sh_offset, SEEK_SET);
-    fread(symTab, 1, tailleSymTab, fichier);
+    int unused __attribute__((unused))=fread(symTab, 1, tailleSymTab, fichier);
 
     for (int i = 0; i < nbSymbole; i++) {
       symTab[i] = reverseAllEndiannessSym(symTab[i]);
@@ -347,21 +328,19 @@ int main(int argc, char *argv[]){
       //on récupère le nombre d'entrées par table de relocalisation
       int tabRelEntryNumber[nbSectionRel] ;
       getArrayOfRelEntryNumber(tabRelEntryNumber, sectionTabRel, nbSectionRel);
+      //printf(" \n");
 
       for (int i = 0; i < nbSectionRel; i++) {
-        relTabArray[i] = malloc(sizeof(tabRelEntryNumber[i] * sizeof(Elf32_Rel)));
+        //printf("nbEntry %d:%d\n", i, tabRelEntryNumber[i]);
+        relTabArray[i] = malloc(tabRelEntryNumber[i] * sizeof(Elf32_Rel));
       }
 
-      readElfFileRelTable(fichier, header, tabHeadSection, sectionSym, sectionTabRel, nbSectionRel, relTabArray);
-
+      readElfFileRelTable(fichier, header, tabHeadSection, sectionSym, sectionTabRel, nbSectionRel, relTabArray, tabRelEntryNumber);
 
       displayElfFileRelTab(fichier, header, tabHeadSection, sectionSym, sectionTabRel, relTabArray, symTab, nbSectionRel, tabRelEntryNumber);
 
       fclose(fichier);
 
-      for (int i = 0; i < nbSectionRel; i++) {
-        free(relTabArray[i]);
-      }
 
     }else{
       printf("Erreur: ouverture fichier\n");
