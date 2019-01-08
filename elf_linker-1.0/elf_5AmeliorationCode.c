@@ -252,6 +252,21 @@ void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab
     }
 }
 
+char* getName(FILE* fichier, Elf32_Shdr tabHeadSection[], Elf32_Ehdr header, int index, int isSymboleName, int indexStrTab){
+  //recuperation du nom de la section
+  char* strName = malloc(60*sizeof(char));
+  fseek(fichier,tabHeadSection[indexStrTab].sh_offset + index, SEEK_SET);
+
+  char c = fgetc(fichier);
+  int h = 0;
+  while (c != '\0') {
+    strName[h] = c;
+    c = fgetc(fichier);
+    h++;
+  }
+  return strName;
+}
+
 
 void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[]){
 
@@ -283,11 +298,32 @@ void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSe
       printf("%-10.8x", symValue);
 
       if (strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[indexName].st_info)), "NOTYPE") == 0){
-        printf("%d-Symbole \t\t", indexName);
+
+
+        //recuperation du nom de la section
+        char* strName = malloc(60*sizeof(char));
+        int indexStrTabSym = 0;
+        int strTabSymTrouve = 0;
+        for (int k = 0; k < header.e_shnum; k++) {
+          if (strTabSymTrouve == 0 && k != header.e_shstrndx &&tabHeadSection[k].sh_type == SHT_STRTAB) {
+            strTabSymTrouve = 1;
+            indexStrTabSym = k;
+          }
+        }
+        strName = getName(fichier, tabHeadSection, header, symTab[indexName].st_name, 1, indexStrTabSym);
+        //printf("%d-Symbole / indiceStrTab: %d / nom: %s \t\t", indexName, symTab[indexName].st_name, strName);
+        printf("%s \t\t", strName);
 
       }else if(strcmp(get_symbol_type(ELF32_ST_TYPE(symTab[indexName].st_info)), "SECTION") == 0){
+
         int indexSection = symTab[indexName].st_shndx;
-        printf("%d-Section \t\t", indexSection);
+
+
+        //recuperation du nom de la section
+        char* strName = malloc(60*sizeof(char));
+        strName = getName(fichier, tabHeadSection, header, tabHeadSection[indexSection].sh_name, 0, header.e_shstrndx);
+        //printf("%d-Section / indiceStrTab: %d / nom: %s \t\t", indexSection, tabHeadSection[indexSection].sh_name, strName);
+        printf("%s \t\t", strName);
       }
 
       printf("\n");
@@ -328,10 +364,8 @@ int main(int argc, char *argv[]){
       //on récupère le nombre d'entrées par table de relocalisation
       int tabRelEntryNumber[nbSectionRel] ;
       getArrayOfRelEntryNumber(tabRelEntryNumber, sectionTabRel, nbSectionRel);
-      //printf(" \n");
 
       for (int i = 0; i < nbSectionRel; i++) {
-        //printf("nbEntry %d:%d\n", i, tabRelEntryNumber[i]);
         relTabArray[i] = malloc(tabRelEntryNumber[i] * sizeof(Elf32_Rel));
       }
 
