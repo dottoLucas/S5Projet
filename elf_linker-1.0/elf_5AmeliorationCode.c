@@ -252,7 +252,7 @@ void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab
     }
 }
 
-char* getName(FILE* fichier, Elf32_Shdr tabHeadSection[], Elf32_Ehdr header, int index, int isSymboleName, int indexStrTab){
+char* getName(FILE* fichier, Elf32_Shdr tabHeadSection[], Elf32_Ehdr header, int index, int indexStrTab){
   //recuperation du nom de la section
   char* strName = malloc(60*sizeof(char));
   fseek(fichier,tabHeadSection[indexStrTab].sh_offset + index, SEEK_SET);
@@ -310,7 +310,7 @@ void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSe
             indexStrTabSym = k;
           }
         }
-        strName = getName(fichier, tabHeadSection, header, symTab[indexName].st_name, 1, indexStrTabSym);
+        strName = getName(fichier, tabHeadSection, header, symTab[indexName].st_name, indexStrTabSym);
         //printf("%d-Symbole / indiceStrTab: %d / nom: %s \t\t", indexName, symTab[indexName].st_name, strName);
         printf("%s \t\t", strName);
 
@@ -321,7 +321,7 @@ void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSe
 
         //recuperation du nom de la section
         char* strName = malloc(60*sizeof(char));
-        strName = getName(fichier, tabHeadSection, header, tabHeadSection[indexSection].sh_name, 0, header.e_shstrndx);
+        strName = getName(fichier, tabHeadSection, header, tabHeadSection[indexSection].sh_name, header.e_shstrndx);
         //printf("%d-Section / indiceStrTab: %d / nom: %s \t\t", indexSection, tabHeadSection[indexSection].sh_name, strName);
         printf("%s \t\t", strName);
       }
