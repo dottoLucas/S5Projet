@@ -1,5 +1,4 @@
 #include <elf.h>
-#include "elfCustom.h"
 #include <stdio.h>
 #include "debug.h"
 #include <unistd.h>
@@ -10,6 +9,7 @@
 #include "util.c"
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define SectionNameLength 20
 
@@ -23,6 +23,21 @@ int reverse_endianess(int value, int size){
         *(--destination) = *(source++);
   }
     return resultat;
+}
+
+int recurpererNumSec(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier,char* param){
+  int i=0;
+  char* str = malloc(SectionNameLength*sizeof(char));
+  fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
+  fgets(str,SectionNameLength,fichier);
+  while(strcmp(str,param) !=0 ){
+    i++;
+    fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
+    fgets(str,SectionNameLength,fichier);
+  }
+
+  free(str);
+  return i;
 }
 
 //----------------------------------------------------------------
@@ -144,17 +159,18 @@ Elf32_Ehdr displayElfFileHeader(char* fichierElf){
     printf("\n");
 
 
-    printf("Version:   0x%d\n",header.e_version);
-    printf("Entry:   0x%x\n",header.e_entry);
-    printf("Début des en-têtes de programme:    %d(octets dans le fichier)\n",header.e_phoff);
-    printf("Début des en-têtes de Hs:    %d(octets dans le fichier)\n",header.e_shoff);
-    printf("Fanions:   0x%x\n",header.e_flags);
-    printf("Taille de cet en-tête:  %d(bytes)\n",header.e_ehsize);
-    printf("Taille de l'en-tête du programme::    %d(bytes)\n",header.e_phentsize);
-    printf("Nombre d'en-tête du programme:   %d\n",header.e_phnum);
-    printf("Taille des en-têtes de Hs:    %d(bytes)\n",header.e_shentsize);
-    printf("Nombre d'en-têtes de Hs:   %d\n",header.e_shnum);
-    printf("Table d'indexes des chaînes d'en-tête de Hs:   %d\n",header.e_shstrndx);
+    printf("Version:                           0x%d\n",header.e_version);
+    printf("Entry:                             0x%x\n",header.e_entry);
+    printf("Début des en-têtes de programme:   %d(octets dans le fichier)\n",header.e_phoff);
+    printf("Début des en-têtes de section:     %d(octets dans le fichier)\n",header.e_shoff);
+    printf("Fanions:                           0x%x\n",header.e_flags);
+    printf("Taille de cet en-tête:             %d(bytes)\n",header.e_ehsize);
+    printf("Taille de l'en-tête du programme:: %d(bytes)\n",header.e_phentsize);
+    printf("Nombre d'en-tête du programme:     %d\n",header.e_phnum);
+    printf("Taille des en-têtes de section:    %d(bytes)\n",header.e_shentsize);
+    printf("Nombre d'en-têtes de section:      %d\n",header.e_shnum);
+    printf("Table d'indexes des chaînes d'en-tête de section:   %d\n",header.e_shstrndx);
+    printf("\n");
   }else{
     printf("Erreur: ouverture fichier\n");
   }
@@ -167,7 +183,7 @@ Elf32_Ehdr displayElfFileHeader(char* fichierElf){
 //----------------------------------------------------------------
 
 // prerequis le fichier doit etre ouver en lecture et point vers le debut du section header
-Elf32_Shdr readHsHeader(Elf32_Shdr *Hs,  FILE * fichier){
+void readHsHeader(Elf32_Shdr *Hs,  FILE * fichier){
 
 	fread(Hs,1,sizeof(Elf32_Shdr), fichier);
     if (!is_big_endian()){
@@ -252,85 +268,74 @@ char* find_type(Elf32_Shdr Hs_header){
     case SHT_HIUSER:    //sh_type = 0xffffffff
       type="HIUSER";
     break;
+    case SHT_ARM_ATTRIBUTES:    //sh_type = 0xffffffff
+      type="ARM_ATTRIBUTES";
+    break;
   default:break;
   }
   
   return type;
 }
-void afficherHeader(Elf32_Half Taille,Elf32_Shdr *TableHs,Elf32_Ehdr *data,FILE *fichier){
+void afficherHeader(Elf32_Shdr *TableHs,Elf32_Ehdr *data,FILE *fichier){
 
 	Elf32_Shdr Hs_header;
   	char* type;
   	char* str = malloc(SectionNameLength*sizeof(char));
+    printf("il y a %d en-tête de section ,debutant a l'adresse de decalage\n",data->e_shnum );
+    printf("En-tête de section\n");
   	printf("[Nr]\t%-15s\t\t%-15s\t\t%-15s\t%-15s\t%-15s\t%-15s\t%s  %s  %s   \t%-15s\n","Nom","Type","Adresse","Decalage","Taille","TaillEntre","Fanion","Lien","Info","Alignement");
- 
-  	for(int i=0;i<Taille;i++){
+  	for(int i=0;i<data->e_shnum;i++){
     	Hs_header = TableHs[i];
     	type=find_type(Hs_header);
-
-      	printf("[%2d]\t",i);                //affichage de 'Nr'
-      	fseek(fichier,TableHs[data->e_shstrndx].sh_offset+Hs_header.sh_name,SEEK_SET);
-  		
- 		fgets(str,SectionNameLength,fichier);
-      	printf("%-15s\t\t",str);  //affichage de 'Nom'	
-      	printf("%-15s\t\t",type);             //affichage de 'Type'
-      	printf("%.8x\t",Hs_header.sh_addr);     //affichage de 'Adresse'
-      	printf("%.6x\t\t",Hs_header.sh_offset);    //affichage de 'Décalage'
-      	printf("%.6x\t\t    ",Hs_header.sh_size);     //affichage de 'Taille'
-      	printf("%.2x\t\t  ",Hs_header.sh_entsize);    //affichage de 'TaillEntré'
-      	printf("%x\t ",Hs_header.sh_flags);       //affichage de 'Fanion'
-      	printf("%d\t ",Hs_header.sh_link);        //affichage de 'Lien'
-      	printf("%d\t ",Hs_header.sh_info);        //affichage de 'Info'
-      	printf("%d\n ",Hs_header.sh_addralign);    //affichage de 'Alignement'
+      printf("[%2d]\t",i);                //affichage de 'Nr'
+      fseek(fichier,TableHs[data->e_shstrndx].sh_offset+Hs_header.sh_name,SEEK_SET);
+ 		  fgets(str,SectionNameLength,fichier);
+      printf("%-15s\t\t",str);  //affichage de 'Nom'	
+      printf("%-15s\t\t",type);             //affichage de 'Type'
+      printf("%.8x\t",Hs_header.sh_addr);     //affichage de 'Adresse'
+      printf("%.6x\t\t",Hs_header.sh_offset);    //affichage de 'Décalage'
+      printf("%.6x\t\t    ",Hs_header.sh_size);     //affichage de 'Taille'
+      printf("%.2x\t\t  ",Hs_header.sh_entsize);    //affichage de 'TaillEntré'
+      printf("%x\t ",Hs_header.sh_flags);       //affichage de 'Fanion'
+      printf("%d\t ",Hs_header.sh_link);        //affichage de 'Lien'
+      printf("%d\t ",Hs_header.sh_info);        //affichage de 'Info'
+      printf("%d\n",Hs_header.sh_addralign);    //affichage de 'Alignement'
   	}
+    printf("Clé des fanions :");
+  printf("W (écriture), A (allocation), X (exécution), M (fusion), S (chaînes), I (info),\n");
+  printf("L (ordre des liens), O (traitement supplémentaire par lOS requis), G (groupe),\n");    
+  printf("T (TLS), C (compressé), x (inconnu), o (spécifique à lOS), E (exclu),\n");      
+  printf("y (purecode), p (processor specific)\n");
   	free(str);
 }
 
-void elf_print_header(Elf32_Shdr **TableHs, char* fichierElf,Elf32_Ehdr *data){
+void elf_print_header(Elf32_Shdr **TableHs, FILE* fichier,Elf32_Ehdr *data){
   
-  FILE* fichier = fopen(fichierElf, "r");
   //decalage  du courseur vers table Hs header
   fseek(fichier,data->e_shoff,SEEK_SET); 
   // declaration table HEADER Hs
-  
-
   for (int i = 0; i < data->e_shnum; ++i) {
   	readHsHeader(&((*TableHs)[i]), fichier);
   }
   
-  afficherHeader(data->e_shnum,*TableHs,data,fichier);
-   
+  afficherHeader(*TableHs,data,fichier);       
 }
+
 
 //----------------------------------------------------------------
 //----------------------------Partie 3----------------------------
 //----------------------------------------------------------------
 
-int recurpererNum(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier,char* param){
-	int i=0;
-	char* str = malloc(SectionNameLength*sizeof(char));
-	fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
-	fgets(str,SectionNameLength,fichier);
-	while(strcmp(str,param) !=0 ){
-		i++;
-		fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
-		fgets(str,SectionNameLength,fichier);
-	}
-
-	free(str);
-	return i;
-}
-
 int VerfifierParametre(char* param,Elf32_Ehdr data,Elf32_Shdr* TableHs,FILE* fichier){
 	int i;
-	if(sizeof(param)==1){
-		i=atoi(param);
-		if(i>data.e_shnum ){
-			i=-100;
-		}
-	}/*else{
-		i=recurpererNum(TableHs,data,fichier,param);
-	}*/
+	 i=atoi(param);
+	if(i>data.e_shnum ){
+    		i=-1;
+  }else if(i>= 0 && i<= data.e_shnum && isalnum(param[0])){
+    return i;
+	}else{
+		i=recurpererNumSec(TableHs,data,fichier,param);
+	}
 	return i;
 }
 
@@ -370,6 +375,7 @@ void afficherSection(FILE *fichier, Elf32_Shdr Section_a_traitee ){
 			NbOctetLu += 16;
 		}
 	}
+  printf("\n");
 
 }
 
@@ -377,22 +383,7 @@ void afficherSection(FILE *fichier, Elf32_Shdr Section_a_traitee ){
 //----------------------------Partie4-----------------------------
 //----------------------------------------------------------------
 
-int recurpererNumSec(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier,char* param){
-	int i=0;
-	char* str = malloc(SectionNameLength*sizeof(char));
-	fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
-	fgets(str,SectionNameLength,fichier);
-	while(strcmp(str,param) !=0 ){
-		i++;
-		fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
-		fgets(str,SectionNameLength,fichier);
-	}
-
-	free(str);
-	return i;
-}
-
-Elf32_Sym readSymTab(Elf32_Sym *Sym,  FILE * fichier){
+void readSymTab(Elf32_Sym *Sym,  FILE * fichier){
 
 	fread(Sym,1,sizeof(Elf32_Sym), fichier);
     if (!is_big_endian()){
@@ -509,39 +500,6 @@ void affichageSymTab(char *fichierG,Elf32_Shdr SmyTab,Elf32_Ehdr *data,Elf32_Shd
 			printf("%d\t\t",Sym->st_shndx);
 		AfficherNom(fichierNom,data,TableHs[indice],Sym);
 	}
+  printf("\n");
 }
 
-int main(int argc, char *argv[]){
-  	// faire sortir le fichier 
-  FILE* fichier = fopen(argv[1], "r");
-
-	Elf32_Ehdr data;
-	Elf32_Shdr *TableHs;
-
-
-	if(argc == 2){
-		//Etape1
-		data = displayElfFileHeader(argv[1]);
-
-		//Etape2
-		TableHs = malloc(data.e_shnum * sizeof(Elf32_Shdr));
-		elf_print_header(&TableHs, argv[1],&data);
-
-  		//Etape 4
-  		int indiceSmyTab;
-		indiceSmyTab=recurpererNumSec(TableHs,data,fichier,".symtab");
-		affichageSymTab(argv[1],TableHs[indiceSmyTab],&data,TableHs);
-
-	//}else if(argc==3){
-			//Etape3
-		// verifier chiffre<=data.e_shnum ou le nom appartient a shstrtab  
-		
-		int indiceSection = 4;//VerfifierParametre(argv[1],data,TableHs,fichier);
-		afficherSection(fichier, TableHs[indiceSection] );
-	}else if(argc == 1){
-    printf("Erreur: il n'y a pas assez d'arguments\n");
-  }else{
-    printf("Erreur: il y a trop d'arguments\n");
-  }
-  return 0;
-}
