@@ -618,14 +618,6 @@ char * get_symbol_visibility (unsigned int visibility){
   return "Error";
 }
 
-char* get_section_name(unsigned int type){
-  switch (type){
-    case SHT_NOBITS:  return ".bss";
-    case SHT_REL: return ".relTab";
-  }
-  return "Error";
-}
-
 char * get_rel_type(unsigned int type){
   switch (type){
     case R_386_NONE:  return "R_386_NONE";
@@ -655,14 +647,6 @@ Elf32_Sym reverseAllEndiannessSym(Elf32_Sym symStruct){
     symStruct.st_shndx = reverse_endianess(symStruct.st_shndx,sizeof(symStruct.st_shndx));
   }
   return symStruct;
-}
-
-char* getNomSym(FILE *fichier,Elf32_Ehdr header,Elf32_Shdr SymTab,Elf32_Sym Sym){
-  char* str = malloc(SectionNameLength*sizeof(char));
-  fseek(fichier,SymTab.sh_offset+Sym.st_name,SEEK_SET);
-  void* unused __attribute__((unused))=fgets(str,SectionNameLength,fichier);
-  free(str);
-  return str;
 }
 
 Elf32_Shdr reverseAllEndiannessSectionHeader(Elf32_Shdr headSection){
