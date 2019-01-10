@@ -1,0 +1,49 @@
+
+Elf32_Rel reverseAllEndiannessRel(Elf32_Rel relStruct);
+Elf32_Sym reverseAllEndiannessSym(Elf32_Sym symStruct);
+Elf32_Shdr reverseAllEndiannessSectionHeader(Elf32_Shdr headSection);
+/**
+* Permet d’inverser l’endianness d’une structure
+* Paramètres: une structure
+* Retourne une structure  avec l’ordre des bits inversés
+*/
+
+void readElfFileHeaderSection(FILE* fichier, Elf32_Shdr tabHeadSection[],Elf32_Ehdr header, int nbSection, int tailleEnTeteSection);
+/**
+* Modifie le tableau tabHeadSection pour qu’il contienne toutes les en-têtes de sections
+*/
+
+Elf32_Shdr readElfFileTabSymSectionHeader(Elf32_Shdr tabHeadSection[],int nbSection, FILE* fichier);
+/**
+* Retourne l’en-tête de section de la table de symbole
+*/
+
+void readElfFileTabRelSectionHeader(Elf32_Shdr sectionTabRel[], Elf32_Shdr tabHeadSection[],int nbSection, FILE* fichier, int* nbSectionRel);
+/**
+* Modifie le tableau sectionTabRel pour qu’il contienne toutes les en-têtes des sections de relocalisation et nbSectionRel pour qu’il soit égal au nombre de sections
+*/
+
+void getArrayOfRelEntryNumber(int* arrayRelEntryNumber, Elf32_Shdr sectionTabRel[], int nbSectionRel);
+/**
+* Modifie le tableau d’entier pour qu’il contienne, pour chaque section de relocalisation, le nombre d’entrées de cette section
+* Paramètres: un tableau d’int, un tableau d’en-têtes de section de relocalisation et un entier qui représente le nombre de section de relocalisation
+*/
+
+void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], int nbSectionRel, Elf32_Rel** relTabArray, int* tabRelEntryNumber);
+/**
+* Modifie le tableau de tableaux relTabArray pour qu’il contienne le contenue des sections de relocalisation
+*/
+
+
+void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab, int nbSymbole, int tailleSymTab);
+/**
+* Modifie le tableau symTab pour qu’il contienne le contenue de la table de symbole
+*/
+
+char* getName(FILE* fichier, Elf32_Shdr tabHeadSection[], Elf32_Ehdr header, int index, int indexStrTab);
+/**
+* Permet de récupérer le nom d’un symbole ou d’une section
+* Paramètres: un fichier où il faut aller récupérer les données, le tableau d’en-têtes de sections, le header, l’index à partir du quel il faut récupérer les octets dans la table de stirng
+et l’index de la section dans laquelle les récupérer
+* Retourne le nom de la structure correspondante
+*/
