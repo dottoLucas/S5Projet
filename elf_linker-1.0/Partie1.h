@@ -56,6 +56,6 @@ void getArrayOfRelEntryNumber(int* arrayRelEntryNumber, Elf32_Shdr sectionTabRel
 void readElfFileRelTable(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], int nbSectionRel, Elf32_Rel** relTabArray, int* tabRelEntryNumber);
 void readElfFileSymTable(FILE* fichier, Elf32_Shdr sectionSym, Elf32_Sym* symTab, int nbSymbole, int tailleSymTab);
 char* getName(FILE* fichier, Elf32_Shdr tabHeadSection[], Elf32_Ehdr header, int index, int indexStrTab);
-void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[]);
+void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[], int indiceSymTab);
 
 #endif

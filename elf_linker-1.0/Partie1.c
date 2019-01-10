@@ -29,11 +29,11 @@ int reverse_endianess(int value, int size){
 int recurpererNumSec(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier,char* param){
   int i=0;
   char* str = malloc(SectionNameLength*sizeof(char));
-  fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
+  fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET);
   fgets(str,SectionNameLength,fichier);
   while(strcmp(str,param) !=0 ){
     i++;
-    fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET); 
+    fseek(fichier,TableHs[data.e_shstrndx].sh_offset+TableHs[i].sh_name,SEEK_SET);
     fgets(str,SectionNameLength,fichier);
   }
 
@@ -177,7 +177,7 @@ Elf32_Ehdr displayElfFileHeader(char* fichierElf,int b){
   FILE* fichier = fopen(fichierElf, "r");
   Elf32_Ehdr header;
   if (fichier != NULL){
-    
+
     header = readElfFileHeader(fichier);
     if(b){
       printfheader(header);
@@ -212,70 +212,70 @@ void readHsHeader(Elf32_Shdr *Hs,  FILE * fichier){
 }
 
 char* find_type(Elf32_Shdr Hs_header){
-  
+
   char* type;
-  
+
   switch (Hs_header.sh_type){
     case SHT_NULL:      //sh_type = 0
       type="NULL";
     break;
-      
+
     case SHT_PROGBITS:    //sh_type = 1
       type="PROGBITS";
     break;
-      
+
     case SHT_SYMTAB:    //sh_type = 2
       type="SYMTAB";
     break;
-      
+
     case SHT_STRTAB:    //sh_type = 3
       type="STRTAB";
     break;
-      
+
     case SHT_RELA:      //sh_type = 4
       type="RELA";
     break;
-      
+
     case SHT_HASH:      //sh_type = 5
       type="HASH";
     break;
-      
+
     case SHT_DYNAMIC:   //sh_type = 6
       type="DYNAMI";
     break;
-      
+
     case SHT_NOTE:      //sh_type = 7
       type="NOTE";
     break;
-      
+
     case SHT_NOBITS:    //sh_type = 8
       type="NOBITS";
     break;
-      
+
     case SHT_REL:     //sh_type = 9
       type="REL";
     break;
-      
+
     case SHT_SHLIB:     //sh_type = 10
       type="SHLIB";
     break;
-      
+
     case SHT_DYNSYM:    //sh_type = 11
       type="DYNSYM";
     break;
-      
+
     case SHT_LOPROC:    //sh_type = 0x70000000
       type="LOPROC";
     break;
-      
+
     case SHT_HIPROC:    //sh_type = 0x7fffffff
       type="HIPROC";
     break;
-      
+
     case SHT_LOUSER:    //sh_type = 0x80000000
       type="LOUSER";
     break;
-      
+
     case SHT_HIUSER:    //sh_type = 0xffffffff
       type="HIUSER";
     break;
@@ -284,7 +284,7 @@ char* find_type(Elf32_Shdr Hs_header){
     break;
   default:break;
   }
-  
+
   return type;
 }
 
@@ -349,11 +349,11 @@ void afficherHeader(Elf32_Shdr *TableHs,Elf32_Ehdr *data,FILE *fichier){
       printf("  [%2d]\t",i);                //affichage de 'Nr'
       fseek(fichier,TableHs[data->e_shstrndx].sh_offset+Hs_header.sh_name,SEEK_SET);
       fgets(str,SectionNameLength,fichier);
-      printf("%-15s",str);  //affichage de 'Nom'  
+      printf("%-15s",str);  //affichage de 'Nom'
       if(strlen(str)<16)                   //un 'if' pour un affichage bien alligné
       	printf("\t\t%-15s\t\t",type);//affichage de 'Type'
       else
-	printf("\t%-15s\t\t",type);           
+	printf("\t%-15s\t\t",type);
       printf("%.8x\t",Hs_header.sh_addr);     //affichage de 'Adresse'
       printf("%.6x\t\t",Hs_header.sh_offset);    //affichage de 'Décalage'
       printf("%.6x\t    ",Hs_header.sh_size);     //affichage de 'Taille'
@@ -366,22 +366,22 @@ void afficherHeader(Elf32_Shdr *TableHs,Elf32_Ehdr *data,FILE *fichier){
     }
     printf("Clé des fanions :\n");
     printf("  W (écriture), A (allocation), X (exécution), M (fusion), S (chaînes)\n");
-    printf("  I (info), L (ordre des liens), G (groupe), T (TLS), E (exclu), x (inconnu)\n");    
-    printf("  O (traitement supplémentaire par lOS requis), o (spécifique à lOS), p (spécifique au processeur)\n");      
+    printf("  I (info), L (ordre des liens), G (groupe), T (TLS), E (exclu), x (inconnu)\n");
+    printf("  O (traitement supplémentaire par lOS requis), o (spécifique à lOS), p (spécifique au processeur)\n");
     free(str);
 }
 ////////////////////////////////////////////////////////////////////////////////////////Hs_header.sh_flags
 
 void elf_print_header(Elf32_Shdr **TableHs, FILE* fichier,Elf32_Ehdr *data){
-  
+
   //decalage  du courseur vers table Hs header
-  fseek(fichier,data->e_shoff,SEEK_SET); 
+  fseek(fichier,data->e_shoff,SEEK_SET);
   // declaration table HEADER Hs
   for (int i = 0; i < data->e_shnum; ++i) {
     readHsHeader(&((*TableHs)[i]), fichier);
   }
-  
-      //////////////////////////////////////////////////////////////////   
+
+      //////////////////////////////////////////////////////////////////
 }
 
 
@@ -420,7 +420,7 @@ void afficherSection(FILE *fichier, Elf32_Shdr Section_a_traitee ){
         }
         string[i] =  fgetc(fichier);
         printf("%02X",string[i]);
-        
+
       }
 
       // afficher les data lu en lettre imprimable
@@ -456,45 +456,45 @@ void readSymTab(Elf32_Sym *Sym,  FILE * fichier){
     Sym->st_info      = reverse_endianess(Sym->st_info,sizeof(Sym->st_info));
     Sym->st_other      = reverse_endianess(Sym->st_other,sizeof(Sym->st_other));
     Sym->st_shndx    = reverse_endianess(Sym->st_shndx,sizeof(Sym->st_shndx));
-  }  
+  }
 }
 
 char* findSymType(Elf32_Sym Sym ){
-  
+
   char* type;
-  
+
   switch (ELF32_ST_TYPE(Sym.st_info)){
-    case STT_NOTYPE:      
+    case STT_NOTYPE:
       type="NOTYPE";
     break;
-      
-    case STT_OBJECT:    
+
+    case STT_OBJECT:
       type="OBJECT";
     break;
-      
-    case STT_FUNC:    
+
+    case STT_FUNC:
       type="FUNC";
     break;
-      
-    case STT_SECTION:    
+
+    case STT_SECTION:
       type="SECTION";
     break;
-      
-    case STT_FILE :      
+
+    case STT_FILE :
       type="FILE ";
     break;
-      
-    case STT_LOPROC:      
+
+    case STT_LOPROC:
       type="LOPROC";
     break;
-      
-    case STT_HIPROC:   
+
+    case STT_HIPROC:
       type="HIPROC";
     break;
     default:
     break;
   }
-  
+
   return type;
 }
 char* findSymLink(Elf32_Sym Sym ){
@@ -522,7 +522,7 @@ char* findSymLink(Elf32_Sym Sym ){
 }
 
 void AfficherNom(FILE *fichier,Elf32_Ehdr *data,Elf32_Shdr SmyTab,Elf32_Sym *Sym){
-  char* str = malloc(SectionNameLength*sizeof(char)); 
+  char* str = malloc(SectionNameLength*sizeof(char));
   fseek(fichier,SmyTab.sh_offset+Sym->st_name,SEEK_SET);
   //printf("%s\n",TableHs[data->e_sh  dx].sh_size ) ;
   //TableHs[data->e_shstrndx].sh_offset+Sym->st_name
@@ -536,7 +536,7 @@ void AfficherNom(FILE *fichier,Elf32_Ehdr *data,Elf32_Shdr SmyTab,Elf32_Sym *Sym
 void affichageSymTab(char *fichierG,Elf32_Shdr SmyTab,Elf32_Ehdr *data,Elf32_Shdr *TableHs){
   char *type;
   char* link;
- 
+
   FILE* fichier = fopen(fichierG, "r");
   FILE* fichierNom = fopen(fichierG, "r");
   Elf32_Sym *Sym=malloc(sizeof(Elf32_Sym));
@@ -773,7 +773,7 @@ char* getName(FILE* fichier, Elf32_Shdr tabHeadSection[], Elf32_Ehdr header, int
 }
 
 
-void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[]){
+void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSection[], Elf32_Shdr sectionSym, Elf32_Shdr sectionTabRel[], Elf32_Rel** relTabArray, Elf32_Sym symTab[],int nbSectionRel, int arrayRelEntryNumber[], int indiceSymTab){
 
   for (int i = 0; i < nbSectionRel; i++) {
     int nbEntry = arrayRelEntryNumber[i];
@@ -807,6 +807,8 @@ void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSe
 
         //recuperation du nom de la section
         char* strName = malloc(60*sizeof(char));
+        int indexStrTabSym = tabHeadSection[indiceSymTab].sh_link;
+        /*
         int indexStrTabSym = 0;
         int strTabSymTrouve = 0;
         for (int k = 0; k < header.e_shnum; k++) {
@@ -814,7 +816,7 @@ void displayElfFileRelTab(FILE* fichier, Elf32_Ehdr header, Elf32_Shdr tabHeadSe
             strTabSymTrouve = 1;
             indexStrTabSym = k;
           }
-        }
+        }*/
         strName = getName(fichier, tabHeadSection, header, symTab[indexName].st_name, indexStrTabSym);
         //printf("%d-Symbole / indiceStrTab: %d / nom: %s \t\t", indexName, symTab[indexName].st_name, strName);
         printf("%s \t\t", strName);
