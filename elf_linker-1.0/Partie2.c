@@ -196,6 +196,7 @@ void SupprimerSection(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier){
 			}
 
 			//affichage du tableau de symbole
+			printf("\nTable de symbole après modification de l'index:\n" );
 			printf("%-10s%-10s%-10s%-20s%-10s%-10s%-10s%-10s\n", "Num","Valeur","Tail","Type","Lien","Vis","Ndx","Nom");
 			for (int g = 0; g < nbSymbole; g++) {
         printf("%-10d:  ",g);
