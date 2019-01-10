@@ -5,19 +5,19 @@
 int octets=0;
 int ExElements=0;
 
-int my_is_big_endian(Elf32_Ehdr h)
+int MyIsbigEndian(Elf32_Ehdr h)
 {
 	return h.e_ident[5] == ELFDATA2MSB;
 }
 
 int32_t recuperer_valeur32(Elf32_Ehdr h, int32_t value)
 {
-	return my_is_big_endian(h) ? __bswap_32(value) : value;
+	return MyIsbigEndian(h) ? __bswap_32(value) : value;
 }
 
 int16_t recuperer_valeur16(Elf32_Ehdr h, int16_t value)
 {
-	return my_is_big_endian(h) ? __bswap_16(value) : value;
+	return MyIsbigEndian(h) ? __bswap_16(value) : value;
 }
 
 void fwrite_value16(FILE * f, Elf32_Ehdr h, int value, int size)
@@ -54,6 +54,7 @@ Elf32_Ehdr NbSectionASup(Elf32_Shdr* TableHsCopie,Elf32_Ehdr dataCopie){
 
 void EditTabSection(Elf32_Shdr** TableHsCopie,Elf32_Shdr* TableHs,Elf32_Ehdr dataCopie,Elf32_Ehdr data){
 
+	printf("data.e_shnum-dataCopie.e_shnum=%d\n",data.e_shnum-dataCopie.e_shnum );
 	for (int i = 0; i<data.e_shnum ; ++i)
 	{
 		if(TableHs[i].sh_type == 9 || (TableHs[i].sh_size == 0 && TableHs[i].sh_type != 0)){ 
@@ -69,6 +70,15 @@ void EditTabSection(Elf32_Shdr** TableHsCopie,Elf32_Shdr* TableHs,Elf32_Ehdr dat
 
 						printf("========\n");
 						(*TableHsCopie)[j+1].sh_offset=(*TableHsCopie)[j+1].sh_offset-TableHs[i].sh_size;
+						if ((TableHs)[j].sh_link!=0)
+						{
+							(*TableHsCopie)[j+2+ExElements].sh_link =TableHs[j].sh_link-(data.e_shnum-dataCopie.e_shnum)+1;
+						}
+						if ((TableHs)[j].sh_info!=0)
+						{
+							(*TableHsCopie)[j+2+ExElements].sh_info = (*TableHsCopie)[j+2+ExElements].sh_info-1;
+						}
+						
 					}
 				}
 				(*TableHsCopie)[j] = (*TableHsCopie)[j+1];
@@ -78,8 +88,7 @@ void EditTabSection(Elf32_Shdr** TableHsCopie,Elf32_Shdr* TableHs,Elf32_Ehdr dat
 		}
 	}
 	printf("dataCopie.e_shnum = %d\n",dataCopie.e_shnum );
-	(*TableHsCopie)[8].sh_link = 9;
-	(*TableHsCopie)[8].sh_info = 11;
+
 	//TableHsCopie[dataCopie.e_shnum -2].sh_link = TableHsCopie[dataCopie.e_shnum -1]
 }
 
@@ -162,8 +171,8 @@ void SupprimerSection(Elf32_Shdr* TableHs,Elf32_Ehdr data,FILE *fichier){
 	}
 
 	//displayElfFileHeader("SortieElf");
-	afficherHeader(TableHsCopie,&dataCopie,resultat);
-	//afficherSection(fichier,TableHsCopie[9]);
+	//afficherHeader(TableHsCopie,&dataCopie,fichier);
+	//afficherSection(fichier,TableHsCopie[8],"8");
 	fclose(resultat);
 }
 
