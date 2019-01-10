@@ -44,79 +44,84 @@ int main(int argc, char *argv[]){
   if(argv[1][1]=='h')
     b=1;
      fichier= fopen(argv[f], "r");
-    //Etape 1
-    data = displayElfFileHeader(argv[f],b);
-    //Etape2
-    TableHs = malloc(data.e_shnum * sizeof(Elf32_Shdr));
-    elf_print_header(&TableHs, fichier,&data);
-    if(argv[1][1]=='S')
-      afficherHeader(TableHs,&data,fichier);
-    //Etape3
-    if(argv[1][1]=='x'){
-      indiceSection=VerfifierParametre(argv[2],data,TableHs,fichier);
-      if(indiceSection<0){
-        printf("AVERTISSEMENT: La section %s n'a pas été vidangée parce qu'inexistante !\n",argv[2] );
-      }else{
-        afficherSection(fichier, TableHs[indiceSection]);
+    if (fichier != NULL){
+
+      //Etape 1
+      data = displayElfFileHeader(argv[f],b);
+      //Etape2
+      TableHs = malloc(data.e_shnum * sizeof(Elf32_Shdr));
+      elf_print_header(&TableHs, fichier,&data);
+      if(argv[1][1]=='S')
+        afficherHeader(TableHs,&data,fichier);
+      //Etape3
+      if(argv[1][1]=='x'){
+        indiceSection=VerfifierParametre(argv[2],data,TableHs,fichier);
+        if(indiceSection<0){
+          printf("AVERTISSEMENT: La section %s n'a pas été vidangée parce qu'inexistante !\n",argv[2] );
+        }else{
+          afficherSection(fichier, TableHs[indiceSection]);
+        }
       }
-    }
-    //Etape 4
-    indiceSmyTab=recurpererNumSec(TableHs,data,fichier,".symtab");
-    if(argv[1][1]=='s'){
+      //Etape 4
+      indiceSmyTab=recurpererNumSec(TableHs,data,fichier,".symtab");
+      if(argv[1][1]=='s'){
 
-      affichageSymTab(argv[2],TableHs[indiceSmyTab],&data,TableHs);
-    }
-    //Etape 5
-    if (argv[1][1]=='r')
-    {
-     // Elf32_Ehdr header = readElfFileHeader(fichier); //on initialise le tableau d'en-têtes de section
-      Elf32_Shdr tabHeadSection[data.e_shnum] ;
-      readElfFileHeaderSection(fichier, tabHeadSection, data, data.e_shnum, data.e_shentsize);
+        affichageSymTab(argv[2],TableHs[indiceSmyTab],&data,TableHs);
+      }
+      //Etape 5
+      if (argv[1][1]=='r')
+      {
+       // Elf32_Ehdr header = readElfFileHeader(fichier); //on initialise le tableau d'en-têtes de section
+        Elf32_Shdr tabHeadSection[data.e_shnum] ;
+        readElfFileHeaderSection(fichier, tabHeadSection, data, data.e_shnum, data.e_shentsize);
 
 
-      //on initialise l'en-têtes de la section de symboles
-      Elf32_Shdr sectionSym = readElfFileTabSymSectionHeader(tabHeadSection,data.e_shnum, fichier);
+        //on initialise l'en-têtes de la section de symboles
+        Elf32_Shdr sectionSym = readElfFileTabSymSectionHeader(tabHeadSection,data.e_shnum, fichier);
 
-      //on initialise le tableau d'en-têtes de relocalisation
-      int nbSectionRel = 0;
-      Elf32_Shdr sectionTabRel[data.e_shnum]  ;
+        //on initialise le tableau d'en-têtes de relocalisation
+        int nbSectionRel = 0;
+        Elf32_Shdr sectionTabRel[data.e_shnum]  ;
 
-      readElfFileTabRelSectionHeader(sectionTabRel, tabHeadSection,data.e_shnum, fichier, &nbSectionRel);
+        readElfFileTabRelSectionHeader(sectionTabRel, tabHeadSection,data.e_shnum, fichier, &nbSectionRel);
 
-      //on récupère le nombre de symbole
-      int nbSymbole = sectionSym.sh_size/sizeof(Elf32_Sym);
+        //on récupère le nombre de symbole
+        int nbSymbole = sectionSym.sh_size/sizeof(Elf32_Sym);
 
-      //on déclare notre tableau de symbole
-      Elf32_Sym symTab[nbSymbole] ;
-      int tailleSymTab = sizeof(symTab);
+        //on déclare notre tableau de symbole
+        Elf32_Sym symTab[nbSymbole] ;
+        int tailleSymTab = sizeof(symTab);
 
-      readElfFileSymTable(fichier, sectionSym, symTab, nbSymbole, tailleSymTab);
+        readElfFileSymTable(fichier, sectionSym, symTab, nbSymbole, tailleSymTab);
 
-      Elf32_Rel* relTabArray[nbSectionRel];
+        Elf32_Rel* relTabArray[nbSectionRel];
 
-      //on récupère le nombre d'entrées par table de relocalisation
-      int tabRelEntryNumber[nbSectionRel] ;
+        //on récupère le nombre d'entrées par table de relocalisation
+        int tabRelEntryNumber[nbSectionRel] ;
 
-      getArrayOfRelEntryNumber(tabRelEntryNumber, sectionTabRel, nbSectionRel);
+        getArrayOfRelEntryNumber(tabRelEntryNumber, sectionTabRel, nbSectionRel);
 
-      for (int i = 0; i < nbSectionRel; i++) {
-        relTabArray[i] = malloc(tabRelEntryNumber[i] * sizeof(Elf32_Rel));
+        for (int i = 0; i < nbSectionRel; i++) {
+          relTabArray[i] = malloc(tabRelEntryNumber[i] * sizeof(Elf32_Rel));
+        }
+
+        readElfFileRelTable(fichier, data, tabHeadSection, sectionSym, sectionTabRel, nbSectionRel, relTabArray, tabRelEntryNumber);
+
+        displayElfFileRelTab(fichier, data, tabHeadSection, sectionSym, sectionTabRel, relTabArray, symTab, nbSectionRel, tabRelEntryNumber, indiceSmyTab);
+        /*for (int i = nbSectionRel; i >= 0; i--) {
+          free(relTabArray[i]);
+        }*/
+
       }
 
-      readElfFileRelTable(fichier, data, tabHeadSection, sectionSym, sectionTabRel, nbSectionRel, relTabArray, tabRelEntryNumber);
 
-      displayElfFileRelTab(fichier, data, tabHeadSection, sectionSym, sectionTabRel, relTabArray, symTab, nbSectionRel, tabRelEntryNumber, indiceSmyTab);
-      /*for (int i = nbSectionRel; i >= 0; i--) {
-        free(relTabArray[i]);
-      }*/
-
+      printf("\n\naffichage de la partie 6,7: \n");
+      printf("_____________________\n\n");
+      //Etape 6
+      SupprimerSection(TableHs,data,fichier);
+    }else{
+      printf("Erreur: ouverture fichier\n");
     }
-
-
-    printf("\n\naffichage de la partie 6,7: \n");
-    printf("_____________________\n\n");
-    //Etape 6
-    SupprimerSection(TableHs,data,fichier);
 
   return 0;
 }
