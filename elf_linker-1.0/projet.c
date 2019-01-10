@@ -113,7 +113,7 @@ int main(int argc, char *argv[]){
     }
 
 
-    printf("\n\naffichage de la partie 6,7  ... \n");
+    printf("\n\naffichage de la partie 6,7: \n");
     printf("_____________________\n\n");
     //Etape 6
     SupprimerSection(TableHs,data,fichier);
